@@ -2,7 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-
+#include <assembly.h>
+#include <token.h>
 QT_BEGIN_NAMESPACE
 
 
@@ -18,6 +19,19 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void analyzeText();//进行词法分析
+private slots:
+    void on_actions_triggered();
+
+    void on_actionds_triggered();
+
+    void on_actiondsd_triggered();
+
+    void on_actiond_triggered();
+
+    void on_tabWidget_tabCloseRequested(int index);
+
+    void on_actions_2_triggered();
 
 private:
     Ui::MainWindow *ui;

@@ -1,46 +1,8 @@
 #include "pl0.h"
 #include "ui_pl0.h"
-
+#include <token.h>
 std::vector<pl0::table> pl0::tablelist;
-typedef enum {
-    PROGRAM = 1,      // "program"
-    BEGIN,            // "begin"
-    END,              // "end"
-    IF,               // "if"
-    THEN,             // "then"
-    ELSE,             // "else"
-    CON,              // "const"
-    PROCEDURE,        // "procedure"
-    VAR,              // "var"
-    DO,               // "do"
-    WHILE,            // "while"
-    CALL,             // "call"
-    READ,             // "read"
-    WRITE,            // "write"
-    REPEAT,           // "repeat"
-    ODD,              // "odd"
 
-    EQU,              // "="
-    LES,              // "<"
-    LESE,             // "<="
-    LARE,             // ">="
-    LAR,              // ">"
-    NEQU,             // "<>"
-    ADD,              // "+"
-    SUB,              // "-"
-    MUL,              // "*"
-    DIV,              // "/"
-
-    SYMBOL,           // 标识符
-    CONST,            // 常量
-    CEQU,             // ":="
-    COMMA,            // ","
-    SEMIC,            // ";"
-    POI,              // "."
-    LBR,              // "("
-    RBR               // ")"
-}TokenType;
-extern TokenType tokentype;
 pl0::pl0(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::pl0)
@@ -112,6 +74,17 @@ void pl0::advancelook(QFile&tokenfile)
         }
     }
 }
+void pl0::checkarray(QFile&tokenfile){
+     advance(tokenfile);//:
+     advance(tokenfile);//array
+      advance(tokenfile);// [
+     advance(tokenfile);//down
+      advance(tokenfile);//.
+     advance(tokenfile);//.
+      advance(tokenfile);//up
+      advance(tokenfile);//of
+    advance(tokenfile);//int
+}
 
 void pl0::checkprog(QFile&tokenfile)
 {
@@ -124,6 +97,7 @@ void pl0::checkprog(QFile&tokenfile)
         if(curid==SYMBOL)
         {
             QString name=curname;
+
             advance(tokenfile);
             advancelook(tokenfile);
             if(curid==SEMIC)
@@ -143,6 +117,7 @@ void pl0::checkprog(QFile&tokenfile)
                     errorlist=errorlist+"第"+QString::number(curline)+"行"+"主过程定义错误";
                 }
             }
+
         }
         else
         {
@@ -303,6 +278,9 @@ void pl0::checkvar(QFile&tokenfile)
             opsymrefeferr(curname);
             errflag=false;
         }
+        if(isArrayName(curname.toStdString())){
+            checkarray(tokenfile);
+        }
         advancelook(tokenfile);
         while(curid==COMMA)
         {
@@ -310,12 +288,16 @@ void pl0::checkvar(QFile&tokenfile)
             advancelook(tokenfile);
             if(curid==SYMBOL)
             {
+
                 advance(tokenfile);
                 if(checksymredef(curname,curlevel)==-1){}
                 else
                 {
                     opsymrefeferr(curname);
                     errflag=false;
+                }
+                if(isArrayName(curname.toStdString())){
+                    checkarray(tokenfile);
                 }
             }
             else

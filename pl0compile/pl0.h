@@ -34,7 +34,7 @@ public:
         int address;
         int value;
     };
-    vector<table>tablelist;
+    static vector<table>tablelist;
     int tableindex;//符号表中元素个数
     int curaddress;//标识符的地址
     /*--------------四元式---------------*/

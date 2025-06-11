@@ -33,7 +33,7 @@ public:
         int address;
         int value;
     };
-    vector<table>tablelist;
+    static vector<table>tablelist;
     int tableindex;//符号表中元素个数
     /*--------------四元式---------------*/
     struct quat
@@ -49,7 +49,7 @@ public:
     QFile quatfile;
      /*--------------错误信息---------------*/
     QString errorlist;
-
+    bool errflag;//初始为true,表示无错误；若出现错误则为false,不进行语义分析
 
 
 
@@ -59,22 +59,35 @@ public:
     int curline;
     int curlevel;//现在在第几层
     int curaddress;
+    int tempindex;//临时变量当前数目
     int checksymredef(QString name,int level);//检查某个标识符在本层中是否已经被定义了
     void opsymrefeferr(QString name);//输出重定义信息；
     void checkprog(QFile&tokenfile);//语法分析入口，检查program语句,检查后进入block中
+    bool checkblock(QFile&tokenfile);//一个模块
     void checkconst(QFile&tokenfile);//检查const
-    void checkoneconst(QFile&tokenfile,bool&errorflag);//检查const中的一个子式
+    bool checkoneconst(QFile&tokenfile,bool&errorflag);//检查const中的一个子式
     void opconsterr(bool&errorflag);//输出const的错误信息
     void checkvar(QFile&tokenfile);//检查var
     void checkproc(QFile&tokenfile);//检查procedure
-    void checkblock(QFile&tokenfile);//一个模块
-    void checkbody(QFile&tokenfile);//检查begin……end
+    bool checkbody(QFile&tokenfile);//检查begin……end
     void checkstatement(QFile&tokenfile);//检查begin……end内的内容；
+    bool checkexpression(QFile&tokenfile);
+    bool checkterm(QFile&tokenfile);
+    bool checkfactor(QFile&tokenfile);//算数表达式的语法分析
+    int checkifsymdef();//检查标识符是否被定义过
     void advance(QFile&tokenfile);//读取下一个token；
     void advancelook(QFile&tokenfile);//读取下一个token，获得curid,curname,curline但是文件指针不动
+
+
      /*--------------语义分析---------------*/
-
-
+    void body(QFile&tokenfile);
+    void statement(QFile&tokenfile);
+    QString expression(QFile&tokenfile);//<exp> → [+|-]<term>{<aop><term>}
+    QString term(QFile&tokenfile);//<term> → <factor>{<mop><factor>}
+    QString factor(QFile&tokenfile);//<factor>→<id>|<integer>|(<exp>)
+    QString newtemp();//返回新的临时变量
+    void lexp(QFile&tokenfile);//判断条件
+    void quatemit(QString opt,QString arg1,QString arg2,QString result);//填入四元式
 private:
     Ui::pl0 *ui;
 };

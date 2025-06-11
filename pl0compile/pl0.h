@@ -16,7 +16,7 @@ extern int test;
 namespace Ui {
 class pl0;
 }
-
+QT_END_NAMESPACE
 class pl0 : public QWidget
 {
     Q_OBJECT
@@ -24,6 +24,7 @@ class pl0 : public QWidget
 public:
     explicit pl0(QWidget *parent = nullptr);
     ~pl0();
+    /*--------------与词法分析的链接---------------*/
 
     /*--------------符号表---------------*/
     struct table
@@ -36,6 +37,7 @@ public:
     };
     static vector<table>tablelist;
     int tableindex;//符号表中元素个数
+    int curaddress;//标识符的地址
     /*--------------四元式---------------*/
     struct quat
     {
@@ -59,7 +61,6 @@ public:
     QString curname;
     int curline;
     int curlevel;//现在在第几层
-    int curaddress;
     int tempindex;//临时变量当前数目
     int checksymredef(QString name,int level);//检查某个标识符在本层中是否已经被定义了
     void opsymrefeferr(QString name);//输出重定义信息；
@@ -75,21 +76,34 @@ public:
     bool checkexpression(QFile&tokenfile);
     bool checkterm(QFile&tokenfile);
     bool checkfactor(QFile&tokenfile);//算数表达式的语法分析
+    void checklexp(QFile&tokenfile);//检查判断条件
     int checkifsymdef();//检查标识符是否被定义过
     void advance(QFile&tokenfile);//读取下一个token；
     void advancelook(QFile&tokenfile);//读取下一个token，获得curid,curname,curline但是文件指针不动
 
 
-     /*--------------语义分析---------------*/
+    /*--------------语义分析---------------*/
+    void prog(QFile&tokenfile);
+    void block(QFile&tokenfile);
+    void condecl(QFile&tokenfile);
+    void vardecl(QFile&tokenfile);
+    void proc(QFile&tokenfile);
     void body(QFile&tokenfile);
     void statement(QFile&tokenfile);
     QString expression(QFile&tokenfile);//<exp> → [+|-]<term>{<aop><term>}
     QString term(QFile&tokenfile);//<term> → <factor>{<mop><factor>}
     QString factor(QFile&tokenfile);//<factor>→<id>|<integer>|(<exp>)
     QString newtemp();//返回新的临时变量
+
     void lexp(QFile&tokenfile);//判断条件
     void checkarray(QFile&tokenfile);//直接越过全部
+
+    void lop(QFile&tokenfile);
     void quatemit(QString opt,QString arg1,QString arg2,QString result);//填入四元式
+
+    /*--------------与目标代码生成的链接---------------*/
+    void writeQuatListToFile(const std::vector<quat>& quatlist);
+
 private:
     Ui::pl0 *ui;
 };

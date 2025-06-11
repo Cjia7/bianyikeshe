@@ -1,3 +1,9 @@
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QTextStream>
+#include <QVBoxLayout>
+#include <QTextEdit>
+#include <QScrollArea>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 

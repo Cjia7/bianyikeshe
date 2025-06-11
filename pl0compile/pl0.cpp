@@ -1,5 +1,7 @@
 #include "pl0.h"
 #include "ui_pl0.h"
+
+std::vector<pl0::table> pl0::tablelist;
 typedef enum {
     PROGRAM = 1,      // "program"
     BEGIN,            // "begin"

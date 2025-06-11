@@ -2,6 +2,7 @@
 #define DAG_H
 #include <QString>
 #include <vector>
+#include <map>
 
 class DAGNode;//前向声明
 class OPTIMIZE
@@ -32,35 +33,47 @@ public:
         CALL,
         PROGRAM,
         PROCEDURE,
-        ENDPROC,
+        PROCEDURE_BEGIN,
+        PROCEDURE_END,
 
         WRITE,
         RED,
 
-        VARDEF,
-        PRODEF
+        VARDEF
     };
 
     struct QuadTuple
     {
     OperatorType op;
     QString arg1;
+    bool isactive1 = true;
     QString arg2;
+    bool isactive2 = true;
     QString result;
+    bool isactiveR = true;
 
     QuadTuple(OperatorType op, const QString& arg1, const QString& arg2, const QString& result)
         : op(op), arg1(arg1), arg2(arg2), result(result) {}
     };
 
+    struct BasicBlock
+    {
+        std::vector<QuadTuple> basic_block; //存储四元式
+        QString curFun; //当前基本块所属的函数名
+        BasicBlock(std::vector<QuadTuple> block,QString fun) : basic_block(block), curFun(fun) {}
+    };
+
 public:
-    OPTIMIZE();
-    ~OPTIMIZE();
+    OPTIMIZE()=default;
+    ~OPTIMIZE()=default;
     void optimize();
+    void set_active();
 
 private:
     std::vector<QuadTuple> Rquadtuples;
-    std::vector<std::vector<QuadTuple>> basicBlocks; //基本块
-    std::vector<std::vector<QuadTuple>> DbasicBlocks; //DAG优化后的基本块
+    std::vector<BasicBlock> basicBlocks; //基本块数组
+    std::vector<BasicBlock> DbasicBlocks; //DAG优化后的基本块数组
+    std::map<QString, bool> activeMap;
 private:
     void loadQuadTuples();
     void divideBasicBlocks();//划分基本快
@@ -72,6 +85,7 @@ private:
     std::vector<QuadTuple> DAGToQuadTuple(std::vector<DAGNode> nodes);
     
 private:
+    bool isOperator(const OPTIMIZE::OperatorType &op);
     bool isTempName(const QString &name);
     bool isNum(const QString& str);
     QString calculateNum(const OperatorType&op, const QString &left, const QString &right);
@@ -80,20 +94,20 @@ class DAGNode
 {
 public:
     //用于构造叶结点的构造函数
-    DAGNode(int label, QString mainMark) : label(label), mainMark(mainMark), left(-1),
+    DAGNode(int label, QString mainMark) : label(label), op(OPTIMIZE::ASSIGN),mainMark(mainMark), left(-1),
                                            right(-1), addMarks(), isDeleted(false) {};
     //用于构造非叶节点的构造函数
     DAGNode(int label, OPTIMIZE::OperatorType op, int left, int right) : label(label), mainMark(""), op(op), left(left),
                                            right(right), addMarks(), isDeleted(false) {};
     DAGNode() = default;
-
-    int label;
-    OPTIMIZE::OperatorType op;
-    QString mainMark;
-    std::vector<QString> addMarks;
-    int left;
-    int right;
-    bool isDeleted;
+    ~DAGNode() = default;
+    int label;//结点序号
+    OPTIMIZE::OperatorType op;//结点操作符
+    QString mainMark;//主标记
+    std::vector<QString> addMarks;//附加标记
+    int left;//左孩子编号
+    int right;//右孩子编号
+    bool isDeleted;//是否被删除
 };
 
 #endif // DAG_H

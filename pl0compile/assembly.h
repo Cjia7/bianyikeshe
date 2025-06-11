@@ -13,7 +13,13 @@ class assembly : public QWidget
 
 public:
     explicit assembly(QWidget *parent = nullptr);
+    QString saveCodeToTempFile(const QString &code, const QString &fileExtension);
     ~assembly();
+
+private slots:
+
+
+    void on_pushButton_4_clicked();
 
 private:
     Ui::assembly *ui;

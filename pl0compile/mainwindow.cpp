@@ -61,6 +61,7 @@ void MainWindow::on_actions_triggered()
 
     // 将内容显示在 `QTextEdit`
     currentEditor->setPlainText(fileContent);
+    currentEditor->setProperty("filePath", fileName);  // 存储文件路径
 }
 
 
@@ -76,15 +77,27 @@ void MainWindow::on_actionds_triggered()
     // 在当前选项卡中查找 QTextEdit
     QTextEdit *currentEditor = currentTab->findChild<QTextEdit*>();
     if (!currentEditor) return;  // 如果没有找到 QTextEdit，则返回
-    QString filename=QFileDialog::getOpenFileName(this,"选择文件",QDir::homePath(),"文本文件 (*.txt;;所有文件 (*.*)");
-    if(filename.isEmpty()) return;
+
+    // **改为保存文件对话框**
+    QString filename = QFileDialog::getSaveFileName(this, "另存为", QDir::homePath(), "文本文件 (*.txt);;所有文件 (*.*)");
+    if (filename.isEmpty()) return;  // 用户取消保存
+
+    // **检查是否已存在文件**
     QFile file(filename);
-    if(!file.open(QIODevice::ReadOnly|QIODevice::Text)){
-        QMessageBox::warning(this,"错误","无法打开文件");
+    if (file.exists()) {
+        QMessageBox::StandardButton reply;
+        reply = QMessageBox::question(this, "文件已存在", "该文件已存在，是否要替换？",
+                                      QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes) return;  // 用户选择不替换
+    }
+
+    // **写入文件**
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "错误", "无法保存文件");
         return;
     }
     QTextStream out(&file);
-    out<<ui->textEdit->toPlainText();
+    out << currentEditor->toPlainText();
     file.close();
 }
 
@@ -118,15 +131,38 @@ void MainWindow::on_actiondsd_triggered()
 
 void MainWindow::on_actiond_triggered()
 {
-    QString filename=QFileDialog::getOpenFileName(this,"选择文件",QDir::homePath(),"文本文件 (*.txt;;所有文件 (*.*)");
-    if(filename.isEmpty()) return;
-    QFile file(filename);
-    if(!file.open(QIODevice::ReadOnly|QIODevice::Text)){
-        QMessageBox::warning(this,"错误","无法打开文件");
+    // 获取当前选项卡
+    int currentIndex = ui->tabWidget->currentIndex();
+    if (currentIndex == -1) return;  // 没有选项卡则返回
+
+    // 获取当前选项卡的 QWidget
+    QWidget *currentTab = ui->tabWidget->widget(currentIndex);
+
+    // 在当前选项卡中查找 QTextEdit
+    QTextEdit *currentEditor = currentTab->findChild<QTextEdit*>();
+    if (!currentEditor) return;  // 如果没有找到 QTextEdit，则返回
+
+    // **检查是否已关联文件**
+    QString currentFilePath = currentEditor->property("filePath").toString();
+
+    if (currentFilePath.isEmpty()) {
+        // **新文件：弹出 "另存为" 对话框**
+        currentFilePath = QFileDialog::getSaveFileName(this, "保存文件", QDir::homePath(), "文本文件 (*.txt);;所有文件 (*.*)");
+        if (currentFilePath.isEmpty()) return; // 用户取消保存
+
+        // **存储文件路径**
+        currentEditor->setProperty("filePath", currentFilePath);
+    }
+
+    // **直接保存（覆盖原文件）**
+    QFile file(currentFilePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "错误", "无法保存文件");
         return;
     }
+
     QTextStream out(&file);
-    out<<ui->textEdit->toPlainText();
+    out << currentEditor->toPlainText();
     file.close();
 }
 

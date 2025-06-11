@@ -4,46 +4,11 @@
 #include <QMainWindow>
 #include <assembly.h>
 #include <token.h>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QFile>
 QT_BEGIN_NAMESPACE
-
-typedef enum {
-    PROGRAM = 1,      // "program"
-    BEGIN,            // "begin"
-    END,              // "end"
-    IF,               // "if"
-    THEN,             // "then"
-    ELSE,             // "else"
-    CON,              // "const"
-    PROCEDURE,        // "procedure"
-    VAR,              // "var"
-    DO,               // "do"
-    WHILE,            // "while"
-    CALL,             // "call"
-    READ,             // "read"
-    WRITE,            // "write"
-    REPEAT,           // "repeat"
-    ODD,              // "odd"
-
-    EQU,              // "="
-    LES,              // "<"
-    LESE,             // "<="
-    LARE,             // ">="
-    LAR,              // ">"
-    NEQU,             // "<>"
-    ADD,              // "+"
-    SUB,              // "-"
-    MUL,              // "*"
-    DIV,              // "/"
-
-    SYMBOL,           // 标识符
-    CONST,            // 常量
-    CEQU,             // ":="
-    COMMA,            // ","
-    SEMIC,            // ";"
-    POI,              // "."
-    LBR,              // "("
-    RBR               // ")"
-}TokenType;
 namespace Ui {
 class MainWindow;
 }

@@ -1,6 +1,6 @@
 #include "pl0.h"
 #include "ui_pl0.h"
-typedef enum {
+typedef enum TokenType {
     PROGRAM = 1,      // "program"
     BEGIN,            // "begin"
     END,              // "end"
@@ -17,7 +17,6 @@ typedef enum {
     WRITE,            // "write"
     REPEAT,           // "repeat"
     ODD,              // "odd"
-
     EQU,              // "="
     LES,              // "<"
     LESE,             // "<="
@@ -28,7 +27,6 @@ typedef enum {
     SUB,              // "-"
     MUL,              // "*"
     DIV,              // "/"
-
     SYMBOL,           // 标识符
     CONST,            // 常量
     CEQU,             // ":="
@@ -36,7 +34,11 @@ typedef enum {
     SEMIC,            // ";"
     POI,              // "."
     LBR,              // "("
-    RBR               // ")"
+    RBR,               // ")"
+    ARR,                //"array"
+    LBK,               //"["
+    RBK,                //"]"
+    COL                 //":"
 }TokenType;
 extern TokenType tokentype;
 pl0::pl0(QWidget *parent)
@@ -54,9 +56,9 @@ pl0::~pl0()
 {
     delete ui;
 }
-
-
 //将begin给出提示
+
+
 
 void pl0::advance(QFile&tokenfile)
 {
@@ -180,6 +182,7 @@ void pl0::prog(QFile&tokenfile)
     quatlist[quatindex].arg1=curname;
     advance(tokenfile);//;
     block(tokenfile);
+
 }
 
 bool pl0::checkblock(QFile&tokenfile)
@@ -637,6 +640,7 @@ void pl0::statement(QFile&tokenfile)
         advance(tokenfile);
         quatemit("DO",arg1,"_","_");
         statement(tokenfile);
+        quatemit("WHEND","_","_","_");
     }
     else if(curid==CALL)
     {
@@ -1274,11 +1278,26 @@ void pl0::quatemit(QString opt,QString arg1,QString arg2,QString result)
     quatlist[quatindex++].result=result;
 }
 
+void pl0::writeQuatListToFile(const std::vector<quat>& quatlist)
+{
+    const QString filePath = "quat.txt";
 
-//<lexp> → <exp> <lop> <exp>|odd <exp>
-
-
-
+    std::ofstream outFile(filePath.toStdString());
+    if (!outFile.is_open())
+    {
+        std::cerr << "无法打开文件: " << filePath.toStdString() << std::endl;
+        return;
+    }
+    // 写入数据（空格分隔）
+    for (const quat& q : quatlist) {
+        outFile << q.opt.toStdString() << " "
+                << q.arg1.toStdString() << " "
+                << q.arg2.toStdString() << " "
+                << q.result.toStdString() << "\n";
+    }
+    outFile.close();
+    std::cout << "文件写入成功: " << filePath.toStdString() << std::endl;
+}
 
 
 

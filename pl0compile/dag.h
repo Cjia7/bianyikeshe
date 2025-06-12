@@ -65,14 +65,17 @@ public:
 
 public:
     OPTIMIZE()=default;
+    OPTIMIZE(int){
+        optimize();
+    }
     ~OPTIMIZE()=default;
     void optimize();
     void set_active();
+    static std::vector<BasicBlock> DbasicBlocks; //DAG优化后的基本块数组
 
 private:
     std::vector<QuadTuple> Rquadtuples;
     std::vector<BasicBlock> basicBlocks; //基本块数组
-    std::vector<BasicBlock> DbasicBlocks; //DAG优化后的基本块数组
     std::map<QString, bool> activeMap;
 private:
     void loadQuadTuples();
@@ -81,6 +84,7 @@ private:
     bool is_zhuanyi(OperatorType);
     bool is_ting(OperatorType);
     OperatorType QTO(const QString& str);
+    QString OTQ(const OperatorType &op);
     std::vector<DAGNode> optimizeOneBlock(std::vector<QuadTuple> quadVector);
     std::vector<QuadTuple> DAGToQuadTuple(std::vector<DAGNode> nodes);
     

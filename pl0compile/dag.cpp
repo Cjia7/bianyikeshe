@@ -460,6 +460,8 @@ QString OPTIMIZE::calculateNum(const OperatorType &op, const QString &left, cons
         result = (l > r) ? 1 : 0;
     else if (op == OPTIMIZE::OperatorType::EQUAL)
         result = (l == r) ? 1 : 0;
+    else if (op == OPTIMIZE::OperatorType::MOD)
+        result = (r != 0) ? l % r : 0;
     return QString::number(result);
 }
 
@@ -491,7 +493,8 @@ OPTIMIZE::OperatorType OPTIMIZE::QTO(const QString &str)
         {"PROCEDURE_END", PROCEDURE_END},
         {"WRITE", WRITE},
         {"RED", RED},
-        {"VARDEF", VARDEF}};
+        {"VARDEF", VARDEF},
+        {"MOD", MOD}};
     if (map.contains(str))
         return map.value(str);
     else
@@ -528,6 +531,7 @@ QString OPTIMIZE::OTQ(const OperatorType &op)
         {PROCEDURE_END, "PROCEDURE_END"},
         {WRITE, "WRITE"},
         {RED, "RED"},
-        {VARDEF, "VARDEF"}};
+        {VARDEF, "VARDEF"},
+        {MOD, "MOD"}};
     return map.value(op);
 }

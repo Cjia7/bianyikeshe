@@ -15,6 +15,7 @@ public:
         SUB,
         MUL,
         DIV,
+        MOD,
 
         IF,
         ELSE,

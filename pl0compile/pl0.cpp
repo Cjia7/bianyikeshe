@@ -1,7 +1,7 @@
 #include "pl0.h"
 #include "ui_pl0.h"
 
-#include <token.h>
+
 std::vector<pl0::table> pl0::tablelist;
 
 
@@ -76,18 +76,105 @@ void pl0::advancelook(QFile&tokenfile)
         }
     }
 }
-void pl0::checkarray(QFile&tokenfile){
-     advance(tokenfile);//:
-     advance(tokenfile);//array
-      advance(tokenfile);// [
-     advance(tokenfile);//down
-      advance(tokenfile);//.
-     advance(tokenfile);//.
-      advance(tokenfile);//up
-      advance(tokenfile);//of
-    advance(tokenfile);//int
+bool pl0::checkarray(QFile& tokenfile) {
+    // 保存当前文件位置
+    qint64 originalPos = tokenfile.pos();
+
+    // 处理冒号
+    advancelook(tokenfile);
+    if (curname != ":") {
+        tokenfile.seek(originalPos); // 恢复位置
+        return reportError("数组定义错误");
+    }
+    advance(tokenfile);
+
+    // 处理array关键字
+    advancelook(tokenfile);
+    if (curname != "array") {
+        tokenfile.seek(originalPos);
+        return reportError("数组定义错误");
+    }
+    advance(tokenfile);
+
+    // 处理左方括号
+    advancelook(tokenfile);
+    if (curname != "[") {
+        tokenfile.seek(originalPos);
+        return reportError("数组成员结构错误");
+    }
+    advance(tokenfile);
+
+    // 处理下界常量
+    advancelook(tokenfile);
+    if (curid != CONST) {
+        tokenfile.seek(originalPos);
+        return reportError("数组成员类型错误");
+    }
+    advance(tokenfile);
+    int down = curname.toInt();
+
+    // 处理两个点号
+    for (int i = 0; i < 2; i++) {
+        advancelook(tokenfile);
+        if (curname != ".") {
+            tokenfile.seek(originalPos);
+            return reportError("数组定义错误");
+        }
+        advance(tokenfile);
+    }
+
+    // 处理上界常量
+    advancelook(tokenfile);
+    if (curid != CONST) {
+        tokenfile.seek(originalPos);
+        return reportError("数组成员类型错误");
+    }
+    advance(tokenfile);
+    int up = curname.toInt();
+
+    // 检查范围有效性
+    if (up < down) {
+        tokenfile.seek(originalPos);
+        return reportError("数组范围错误");
+    }
+
+    // 处理of关键字
+    advancelook(tokenfile);
+    if (curname != "of") {
+        tokenfile.seek(originalPos);
+        return reportError("数组定义错误");
+    }
+    advance(tokenfile);
+
+    // 处理int类型
+    advancelook(tokenfile);
+    if (curname != "int") {
+        tokenfile.seek(originalPos);
+        return reportError("数组类型错误");
+    }
+    advance(tokenfile);
+
+    return true;
 }
 
+
+// 辅助函数：报告错误并返回false
+bool pl0::reportError(const QString& message) {
+    qDebug() << "第" << curline << "行" << message << ";\n";
+    errorlist += "第" + QString::number(curline) + "行" + message;
+    return false;
+}
+void pl0::checkoutarray(QFile& tokenfile) {
+    // 此函数预期会修改文件状态
+    advance(tokenfile); // array
+    advance(tokenfile); // [
+    advance(tokenfile); // down
+    advance(tokenfile); // .
+    advance(tokenfile); // .
+    advance(tokenfile); // up
+    advance(tokenfile); // of
+    advance(tokenfile); // int
+}
 void pl0::checkprog(QFile&tokenfile)
 {
     advancelook(tokenfile);
@@ -161,7 +248,6 @@ void pl0::prog(QFile&tokenfile)
     block(tokenfile);
 
 }
-
 bool pl0::checkblock(QFile&tokenfile)
 {
     advancelook(tokenfile);
@@ -220,6 +306,7 @@ void pl0::condecl(QFile&tokenfile)
     quatlist[quatindex].opt=":=";
     quatlist[quatindex].arg1=curname;
     quatlist[quatindex++].result=name;
+
     advance(tokenfile);//
     while(curid==COMMA)
     {
@@ -239,6 +326,9 @@ void pl0::vardecl(QFile&tokenfile)
     advance(tokenfile);
     quatlist[quatindex].opt="vardef";
     quatlist[quatindex++].arg1=curname;
+    if(isArrayName(curname.toStdString())){
+        checkoutarray(tokenfile);
+    }
     advance(tokenfile);
     while(curid==COMMA)
     {
@@ -405,8 +495,7 @@ void pl0::checkvar(QFile&tokenfile)
             opsymrefeferr(curname);
             errflag=false;
         }
-        if(isArrayName(curname.toStdString())){
-            checkarray(tokenfile);
+        if(isArrayName(curname.toStdString())&&checkarray(tokenfile)){
         }
         advancelook(tokenfile);
         while(curid==COMMA)
@@ -415,7 +504,6 @@ void pl0::checkvar(QFile&tokenfile)
             advancelook(tokenfile);
             if(curid==SYMBOL)
             {
-
                 advance(tokenfile);
                 if(checksymredef(curname,curlevel)==-1)
                 {
@@ -1265,7 +1353,6 @@ void pl0::quatemit(QString opt,QString arg1,QString arg2,QString result)
 void pl0::writeQuatListToFile(const std::vector<quat>& quatlist)
 {
     const QString filePath = "quat.txt";
-
     std::ofstream outFile(filePath.toStdString());
     if (!outFile.is_open())
     {

@@ -6,6 +6,15 @@
 #include <iostream>
 #include <sstream>
 using namespace std;
+struct Array {
+    string name;
+    int up;    //数组上届
+    int down;   //数组下界
+};
+extern vector<Array> arrayNames;                //声明为全局变量确保词法和语法分析都能用上
+
+bool isArrayName(const string& str);
+
 namespace Ui {
 class token;
 }
@@ -43,7 +52,11 @@ enum TokenType {
     SEMIC,            // ";"
     POI,              // "."
     LBR,              // "("
-    RBR               // ")"
+    RBR,               // ")"
+    ARR,                //"array"
+    LBK,               //"["
+    RBK,                //"]"
+    COL                 //":"
 };
 extern unordered_map<string, TokenType> tokenMap;
 struct Token {
@@ -63,9 +76,17 @@ public:
     string getstring();
     string getOutputText();//存储我cout的部分
     bool gethasError(){return hasError;};
+    void handleArrayInVar();
+    bool isarrayvar(const string& name);
+    bool isArrayDefinitionFollowing(const string& name);
+    bool parseArrayBounds(const string& name);
+    bool isTypeSpecified();
+    void skipWhitespace();
 private:
     Ui::token *ui;
     int line = 1;
+    size_t pos;
+    int line1 = 1;
     string input;
     size_t position = 0;
     vector<Token> tokens;
@@ -73,12 +94,11 @@ private:
     stringstream outputStream;
     std::vector<std::string> keywordTable;
     std::vector<std::string> delimiterTable;
-
     void initTables() {
         keywordTable = { "program", "procedure", "function", "break", "real", "while",
-                        "do", "record", "const", "case", "for", "return", "if", "else", "default" };
+                        "do", "record", "const", "case", "for", "return", "if", "else", "default" ,"array"};
         delimiterTable = { "=", "<", "<=", ">=", ">", "<>", "+", "-", "*", "/",
-                          ":=", ",", ";", ".", "(", ")" };
+                          ":=", ",", ";", ".", "(", ")" ,"[","]",":"};
     }
 
     int getTokenType(const string& c) {

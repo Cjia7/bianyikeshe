@@ -325,12 +325,12 @@ void token::scan(){
         std::cout << "ERROR" << endl;
         return;
     }
-    ofstream file("word analysis.txt");
+    ofstream file("D://codes//bianyi1//wangwangduibianyi//bianyikeshe//pl0compile//word analysis.txt");
     if (!file.is_open()) {
         cout << "can't open file" << endl; // 文件打开失败
     }
     for (const auto& token : tokens) {
-        file<< token.name << "$" << token.type << "%" << token.line << "\n";
+        file<< token.name << "$" << token.type << "#" << token.line << "\n";
     }
 }
 string token::getstring(){

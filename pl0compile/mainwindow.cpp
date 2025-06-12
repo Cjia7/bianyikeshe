@@ -10,6 +10,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    ,pl0comp(nullptr)
 {
     ui->setupUi(this);
     this->show();
@@ -22,18 +23,31 @@ MainWindow::~MainWindow()
 void MainWindow::analyzeText() {
     // 获取 textEdit 里的文本
     QString inputText = ui->textEdit->toPlainText();
-
     // 创建 token 解析对象
     token tokenizer(nullptr, inputText.toStdString());
-
     // 执行词法分析
     tokenizer.scan();
-
     // 获取所有输出信息，包括错误和分析结果
     QString outputText = QString::fromStdString(tokenizer.getOutputText());
-
     // 显示在 textEdit_2
-    ui->label->setText(outputText);
+
+    QFile tokenfile("word analysis.txt"); // 或者使用绝对路径
+    if (!tokenfile.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug() << "无法打开文件:" << tokenfile.errorString();
+        return; // 或其他错误处理
+    }
+    pl0comp.checkprog(tokenfile);//语法分析
+    if(pl0comp.errflag)//语法分析没有错误
+    {
+        tokenfile.seek(0);//从头开始，再扫描一遍
+        pl0comp.prog(tokenfile);//语义分析
+    }
+    else
+    {
+        outputText=outputText+pl0comp.errorlist;
+    }
+    ui->textEdit_2->setPlainText(outputText);
 }
 void MainWindow::on_actions_triggered()
 {
@@ -226,20 +240,64 @@ void MainWindow::on_actions_2_triggered()
     tokenizer.scan();
 
     // 获取词法分析输出信息
-    QString outputText = QString::fromStdString(tokenizer.getOutputText());
+    QString outputText="";
+    outputText = QString::fromStdString(tokenizer.getOutputText());
 
-
-
-    // 判断是否有错误
-    if (tokenizer.gethasError()) {
-        QMessageBox::warning(this, "词法分析错误", "代码存在错误，请查看详细信息！");
-        // 显示在 textEdit_2
-        ui->label->setText(outputText);
-    } else {
+    QFile tokenfile("D://codes//bianyi1//wangwangduibianyi//bianyikeshe//pl0compile//word analysis.txt"); // 或者使用绝对路径
+    if (!tokenfile.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        qDebug() << "无法打开文件:" << tokenfile.errorString();
+        return; // 或其他错误处理
+    }
+    if(tokenfile.size()>0)
+    {
+        //pl0->curname="hell0";
+        pl0comp.checkprog(tokenfile);//语法分析
+        if(pl0comp.errflag)//语法分析没有错误
+        {
+            tokenfile.seek(0);//从头开始，再扫描一遍
+            pl0comp.curlevel=0;
+            pl0comp.prog(tokenfile);//语义分析
+            pl0comp.writeQuatListToFile();
+        }
+        else
+        {
+            outputText=outputText+pl0comp.errorlist;
+        }
+    }
+    else
+    {
+        qDebug()<<"词法分析所得文件为空，无法进行语法分析";
+    }
+    if(outputText.isEmpty())//没有错误
+    {
         // 关闭当前窗口，打开 assembly 界面
-        assembly *assemblyWindow = new assembly();
+        assembly*assemblyWindow = new assembly(pl0comp);
         this->close();
         assemblyWindow->show();
     }
+    else
+    {
+        ui->textEdit_2->setPlainText(outputText);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

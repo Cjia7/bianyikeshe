@@ -8,6 +8,7 @@ std::vector<pl0::table> pl0::tablelist;
 pl0::pl0(QWidget *parent)
     : QWidget(parent)  // 这里 parent 是传入的 QWidget*
     , ui(new Ui::pl0)
+    ,curname("")
 {
     ui->setupUi(this);  // 这里 this 是 pl0*，可以正常使用
     tableindex=0;
@@ -15,6 +16,10 @@ pl0::pl0(QWidget *parent)
     quatindex=0;
     curaddress=0;
     tempindex=0;
+    curid=-1;
+    errflag=true;
+
+   // curname="";
 }
 pl0::~pl0()
 {
@@ -26,54 +31,49 @@ pl0::~pl0()
 
 void pl0::advance(QFile&tokenfile)
 {
-    if(!tokenfile.open(QIODevice::ReadOnly))
+    if(tokenfile.atEnd())
     {
-        qDebug()<<"Error:Couldn't open the file";
-        return;
+        qDebug()<<"语法分析结束";
     }
     else
     {
-        if(tokenfile.atEnd())
-        {
-            qDebug()<<"语法分析结束";
+        QString newline;
+        newline=tokenfile.readLine();
+        int pos1=newline.indexOf('$');
+        int pos2=newline.indexOf('#');
+        if (pos2 == -1 || pos2 <= pos1) {
+            qDebug() << "错误：未找到 % 分隔符或位置无效";
+            return;
         }
-        else
-        {
-            QString newline;
-            newline=tokenfile.readLine();
-            int pos1=newline.indexOf(',');
-            curname=newline.mid(0,pos1);
-            int pos2=newline.indexOf('%');
-            curid=(newline.mid(pos1,pos2-pos1)).toInt() ;
-            curline=(newline.mid(pos2,newline.length()-pos2)).toInt();
-        }
+        QString name=newline.mid(0,pos1);
+        curid=(newline.mid(pos1+1,pos2-pos1-1)).toInt() ;
+        curline=(newline.mid(pos2+1,newline.length()-pos2-1)).toInt();
+        curname=name;
     }
 }
 void pl0::advancelook(QFile&tokenfile)
 {
-    if(!tokenfile.open(QIODevice::ReadOnly))
+    if(tokenfile.atEnd())
     {
-        qDebug()<<"Error:Couldn't open the file";
-        return;
+        qDebug()<<"语法分析结束";
     }
     else
     {
-        if(tokenfile.atEnd())
-        {
-            qDebug()<<"语法分析结束";
+        int linepos=tokenfile.pos();
+        QString newline;
+        newline=tokenfile.readLine();
+        int pos1=newline.indexOf('$');
+        int pos2=newline.indexOf('#');
+        if (pos2 == -1 || pos2 <= pos1) {
+            qDebug() << "错误：未找到 % 分隔符或位置无效";
+            return;
         }
-        else
-        {
-            int linepos=tokenfile.pos();
-            QString newline;
-            newline=tokenfile.readLine();
-            int pos1=newline.indexOf(',');
-            curname=newline.mid(0,pos1);
-            int pos2=newline.indexOf('%');
-            curid=(newline.mid(pos1,pos2-pos1)).toInt() ;
-            curline=(newline.mid(pos2,newline.length()-pos2)).toInt();
-            tokenfile.seek(linepos);
-        }
+        QString name=newline.mid(0,pos1);
+        curid=(newline.mid(pos1+1,pos2-pos1-1)).toInt() ;
+        curline=(newline.mid(pos2+1,newline.length()-pos2-1)).toInt();
+        curname=name;
+
+        tokenfile.seek(linepos);
     }
 }
 bool pl0::checkarray(QFile& tokenfile) {
@@ -177,6 +177,7 @@ void pl0::checkoutarray(QFile& tokenfile) {
 }
 void pl0::checkprog(QFile&tokenfile)
 {
+   // curname="hello";
     advancelook(tokenfile);
     bool flag=false;//防止错误信息多遍输出
     if(curid==PROGRAM)
@@ -191,11 +192,15 @@ void pl0::checkprog(QFile&tokenfile)
             advancelook(tokenfile);
             if(curid==SEMIC)
             {
+                advance(tokenfile);
                 if(checksymredef(name,curlevel)==-1)
                 {
-                    tablelist[tableindex].name=name;
-                    tablelist[tableindex].level=curlevel;
-                    tablelist[tableindex++].type=PROGRAM;
+                    struct table temptable={PROGRAM,name,curlevel,-1,-1};
+                    tablelist.push_back(temptable);
+                    tableindex++;
+                    // tablelist[tableindex].level=curlevel;
+                    // tablelist[tableindex].type=PROGRAM;
+                    // tablelist[tableindex++].name=name;
                     //   tablelist[tableindex++].address=curaddress++;
                 }
                 else
@@ -212,7 +217,6 @@ void pl0::checkprog(QFile&tokenfile)
                     errorlist=errorlist+"第"+QString::number(curline)+"行"+"主过程定义错误";
                 }
             }
-
         }
         else
         {
@@ -242,11 +246,13 @@ void pl0::prog(QFile&tokenfile)
 {
     advance(tokenfile);//program
     advance(tokenfile);//symbol
-    quatlist[quatindex].opt="PROG";
-    quatlist[quatindex].arg1=curname;
+    struct quat tempquat={"PROGRAM",curname,"_","_"};
+    quatlist.push_back(tempquat);
+    quatindex++;
+    // quatlist[quatindex].opt="PROG";
+    // quatlist[quatindex].arg1=curname;
     advance(tokenfile);//;
     block(tokenfile);
-
 }
 bool pl0::checkblock(QFile&tokenfile)
 {
@@ -267,7 +273,6 @@ bool pl0::checkblock(QFile&tokenfile)
     }
     if(curid==PROCEDURE)
     {
-        curlevel++;
         checkproc(tokenfile);
         curlevel--;
     }
@@ -278,18 +283,19 @@ bool pl0::checkblock(QFile&tokenfile)
 }
 void pl0::block(QFile&tokenfile)
 {
-    advance(tokenfile);
+    advancelook(tokenfile);
     if(curid==CON)
     {
-        condecl(tokenfile);
+        condecl(tokenfile);//;已经被advance，看下一个符号是什么
     }
+    advancelook(tokenfile);
     if(curid==VAR)
     {
         vardecl(tokenfile);
     }
+    advancelook(tokenfile);
     if(curid==PROCEDURE)
     {
-        curlevel++;
         proc(tokenfile);
         curlevel--;
     }
@@ -299,72 +305,81 @@ void pl0::block(QFile&tokenfile)
 //<const> → <id>:=<integer>
 void pl0::condecl(QFile&tokenfile)
 {
+    advance(tokenfile);//const
     advance(tokenfile);//第一个常数标识符
     QString name=curname;
     advance(tokenfile);//:=
     advance(tokenfile);//常量值
-    quatlist[quatindex].opt=":=";
-    quatlist[quatindex].arg1=curname;
-    quatlist[quatindex++].result=name;
-
-    advance(tokenfile);//
+    struct quat tempquat={":=",curname,"_",name};
+    quatlist.push_back(tempquat);
+    quatindex++;
+    // quatlist[quatindex].opt=":=";
+    // quatlist[quatindex].arg1=curname;
+    // quatlist[quatindex++].result=name;
+    advance(tokenfile);//如果有多个则为,否则为;
     while(curid==COMMA)
     {
         advance(tokenfile);//常数标识符
         name=curname;
         advance(tokenfile);//:=
         advance(tokenfile);//常量值
-        quatlist[quatindex].opt=":=";
-        quatlist[quatindex].arg1=curname;
-        quatlist[quatindex++].result=name;
-        advance(tokenfile);//
+        struct quat quattemp={":=",curname,"_",name};
+        quatlist.push_back(quattemp);
+        quatindex++;
+        // quatlist[quatindex].opt=":=";
+        // quatlist[quatindex].arg1=curname;
+        // quatlist[quatindex++].result=name;
+        advance(tokenfile);//,或是;
     }
 }
 //<vardecl> → var <id>{,<id>};
 void pl0::vardecl(QFile&tokenfile)
 {
-    advance(tokenfile);
-    quatlist[quatindex].opt="vardef";
-    quatlist[quatindex++].arg1=curname;
-    if(isArrayName(curname.toStdString())){
-        checkoutarray(tokenfile);
-    }
-    advance(tokenfile);
+    advance(tokenfile);//var
+    advance(tokenfile);//varname
+    struct quat quatemp={"VARDEF",curname,"_","_"};
+    quatlist.push_back(quatemp);
+    quatindex++;
+    // quatlist[quatindex].opt="vardef";
+    // quatlist[quatindex++].arg1=curname;
+    advance(tokenfile);//,或是;
     while(curid==COMMA)
     {
         advance(tokenfile);
-        quatlist[quatindex].opt="vardef";
-        quatlist[quatindex++].arg1=curname;
+        struct quat quatemp={"VARDEF",curname,"_","_"};
+        quatlist.push_back(quatemp);
+        quatindex++;
         advance(tokenfile);
     }
 }
 //<proc> → procedure <id>（[<id>{,<id>}]）;<block>{;<proc>}
 void pl0::proc(QFile&tokenfile)
 {
-    advance(tokenfile);
-    quatlist[quatindex].opt="prodef";
-    quatlist[quatindex].arg1=curname;
-
-    advance(tokenfile);
+    advance(tokenfile);//proc
+    advance(tokenfile);//name
+    struct quat quatemp={"PROCEDURE",curname,"_","_"};
+    quatlist.push_back(quatemp);
+    quatindex++;
+    curlevel++;//;
+    // quatlist[quatindex].opt="prodef";
+    // quatlist[quatindex].arg1=curname;
+    advance(tokenfile);//;
     block(tokenfile);
     advancelook(tokenfile);
     while(curid==SEMIC)
     {
         advance(tokenfile);
         proc(tokenfile);
+        curlevel--;
         advancelook(tokenfile);
     }
 }
 //<body> → begin <statement>{;<statement>}end
 void pl0::body(QFile&tokenfile)
 {
-    advance(tokenfile);
-    QString name="progbegin";
-    if(curlevel!=0)//表示不是主过程
-    {
-        name="procbegin";
-    }
-    quatlist[quatindex].opt=name;
+    advance(tokenfile);//begin
+    QString name="PROCEDURE_BEGIN";
+    quatlist.push_back({name,"_","_","_"});
     statement(tokenfile);
     advancelook(tokenfile);
     while(curid==SEMIC)
@@ -373,7 +388,10 @@ void pl0::body(QFile&tokenfile)
         statement(tokenfile);
         advancelook(tokenfile);
     }
-    advance(tokenfile);
+    advance(tokenfile);//end
+    QString endname="PROCEDURE_END";
+    quatlist.push_back({endname,"_","_","_"});
+
 }
 //检查标识符是否已经存在于符号表中
 int pl0::checksymredef(QString name,int level)
@@ -415,12 +433,16 @@ bool pl0::checkoneconst(QFile&tokenfile,bool&errorflag)
             advancelook(tokenfile);
             if(curid==CONST)
             {
+                advance(tokenfile);
                 if(checksymredef(cursymbol,curlevel)==-1)
                 {
-                    tablelist[tableindex].name=cursymbol;
-                    tablelist[tableindex].level=curlevel;
-                    tablelist[tableindex].type=CONST;
-                    tablelist[tableindex++].value=curname.toInt();
+                    struct table temptable={CONST,cursymbol,curlevel,-1,curname.toInt()};
+                    tablelist.push_back(temptable);
+                    tableindex++;
+                    // tablelist[tableindex].name=cursymbol;
+                    // tablelist[tableindex].level=curlevel;
+                    // tablelist[tableindex].type=CONST;
+                    // tablelist[tableindex++].value=curname.toInt();
                 }
                 else
                 {
@@ -458,7 +480,10 @@ void pl0::checkconst(QFile&tokenfile)
             errflag=false;
     }
     advancelook(tokenfile);
-    if(curid==SEMIC){}
+    if(curid==SEMIC)
+    {
+        advance(tokenfile);
+    }
     else
     {
         advance(tokenfile);
@@ -483,12 +508,16 @@ void pl0::checkvar(QFile&tokenfile)
     bool errorflag=false;//var定义的错误
     if(curid==SYMBOL)
     {
+        advance(tokenfile);
         if(checksymredef(curname,curlevel)==-1)
         {
-            tablelist[tableindex].name=curname;
-            tablelist[tableindex].level=curlevel;
-            tablelist[tableindex].type=VAR;
-            tablelist[tableindex++].address=curaddress++;
+            struct table temptable={VAR,curname,curlevel,curaddress++,-1};
+            tablelist.push_back(temptable);
+            tableindex++;
+            // tablelist[tableindex].name=curname;
+            // tablelist[tableindex].level=curlevel;
+            // tablelist[tableindex].type=VAR;
+            // tablelist[tableindex++].address=curaddress++;
         }
         else
         {
@@ -507,10 +536,13 @@ void pl0::checkvar(QFile&tokenfile)
                 advance(tokenfile);
                 if(checksymredef(curname,curlevel)==-1)
                 {
-                    tablelist[tableindex].name=curname;
-                    tablelist[tableindex].level=curlevel;
-                    tablelist[tableindex].type=VAR;
-                    tablelist[tableindex++].address=curaddress++;
+                    struct table temptable={VAR,curname,curlevel,curaddress++,-1};
+                    tablelist.push_back(temptable);
+                    tableindex++;
+                    // tablelist[tableindex].name=curname;
+                    // tablelist[tableindex].level=curlevel;
+                    // tablelist[tableindex].type=VAR;
+                    // tablelist[tableindex++].address=curaddress++;
                 }
                 else
                 {
@@ -529,8 +561,10 @@ void pl0::checkvar(QFile&tokenfile)
                     errorflag=true;
                     qDebug()<<"第"<<curline<<"行,变量定义错误\n";
                     errorlist=errorlist+"第"+QString::number(curline)+"行,变量定义错误\n";
+
                 }
             }
+            advancelook(tokenfile);
         }
         if(curid==SEMIC)
         {
@@ -557,7 +591,7 @@ void pl0::checkvar(QFile&tokenfile)
             errorlist=errorlist+"第"+QString::number(curline)+"行变量定义错误\n";
         }
     }
-    // advancelook(tokenfile);
+    advancelook(tokenfile);
     // while(curid!=PROCEDURE&&curid!=BEGIN)
     // {
     //     errflag=false;
@@ -588,9 +622,13 @@ void pl0::checkproc(QFile&tokenfile)//过程体
         {
             if(curid==SEMIC)
             {
-                tablelist[tableindex].name=curname;
-                tablelist[tableindex].level=curlevel;
-                tablelist[tableindex++].type=PROCEDURE;
+                advance(tokenfile);
+                struct table temptable={PROCEDURE,tempname,curlevel,-1,-1};
+                tablelist.push_back(temptable);
+                tableindex++;
+                // tablelist[tableindex].name=curname;
+                // tablelist[tableindex].level=curlevel;
+                // tablelist[tableindex++].type=PROCEDURE;
                 //  tablelist[tableindex++].address=curaddress++;
             }
             else
@@ -609,12 +647,13 @@ void pl0::checkproc(QFile&tokenfile)//过程体
             errorlist=errorlist+"第"+QString::number(curline)+"行，过程名重复;\n";
         }
     }
-    if(procflag)
+    if(!procflag)
     {
         qDebug()<<"第"<<curline<<"行，过程定义错误\n";
         errorlist=errorlist+"第"+QString::number(curline)+"行，过程定义错误;\n";
         procflag=false;
     }
+    curlevel++;
     checkblock(tokenfile);
     advancelook(tokenfile);
     //<proc> → procedure <id>（[<id>{,<id>}]）;<block>{;<proc>}
@@ -666,10 +705,11 @@ int pl0::checkifsymdef()
 {
     int symindex=-1;
     if(checksymredef(curname,curlevel)!=-1)symindex=checksymredef(curname,curlevel);
-    else if(checksymredef(curname,curlevel-1)!=-1)symindex=checksymredef(curname,curlevel);
-    else if(checksymredef(curname,curlevel-2)==-1)symindex=checksymredef(curname,curlevel);
+    else if(checksymredef(curname,curlevel-1)!=-1)symindex=checksymredef(curname,curlevel-1);
+    else if(checksymredef(curname,curlevel-2)!=-1)symindex=checksymredef(curname,curlevel-2);
     else
     {
+        errflag=false;
         qDebug()<<"第"<<curline<<"行，标识符未定义\n";
         errorlist=errorlist+"第"+QString::number(curline)+"行，标识符未定义\n";
     }
@@ -684,15 +724,18 @@ int pl0::checkifsymdef()
 //                       |write (<exp>{,<exp>})
 void pl0::statement(QFile&tokenfile)
 {
-    advance(tokenfile);
+    advancelook(tokenfile);
     if(curid==SYMBOL)
     {
+        advance(tokenfile);//symbol;
         QString name=curname;
-        advance(tokenfile);
-        expression(tokenfile);
+        advance(tokenfile);//：=
+        QString arg1=expression(tokenfile);
+        quatemit(":=",arg1,"_",name);
     }
     else if(curid==IF)
     {
+        advance(tokenfile);//if
         QString arg1=lexp(tokenfile);
         quatemit("IF",arg1,"_","_");
         advance(tokenfile);//then
@@ -707,6 +750,7 @@ void pl0::statement(QFile&tokenfile)
     }
     else if(curid==WHILE)
     {
+        advance(tokenfile);//while;
         quatemit("WHILE","_","_","_");
         QString arg1=lexp(tokenfile);
         advance(tokenfile);
@@ -716,41 +760,56 @@ void pl0::statement(QFile&tokenfile)
     }
     else if(curid==CALL)
     {
+        advance(tokenfile);//call;
         advance(tokenfile);
-        quatlist[quatindex].opt="CALL";
-        quatlist[quatindex++].arg1=curname;
+        struct quat quatemp={"CALL",curname,"_","_"};
+        quatlist.push_back(quatemp);
+        quatindex++;
+        // quatlist[quatindex].opt="CALL";
+        // quatlist[quatindex++].arg1=curname;
+
     }
     else if(curid==READ)
     {
+        advance(tokenfile);//read
         advance(tokenfile);//左括弧
         advance(tokenfile);//第一个id
-        quatlist[quatindex].opt="READ";
-        quatlist[quatindex++].result=curname;
+        struct quat quatemp={"READ",curname,"_","_"};
+        quatlist.push_back(quatemp);
+        quatindex++;
+        // quatlist[quatindex].opt="READ";
+        // quatlist[quatindex++].result=curname;
         advance(tokenfile);//,或是)
         while(curid==SEMIC)
         {
             advance(tokenfile);//读到下一个id
-            quatlist[quatindex].opt="READ";
-            quatlist[quatindex++].result=curname;
+            struct quat quatemp={"READ",curname,"_","_"};
+            quatlist.push_back(quatemp);
+            quatindex++;
             advance(tokenfile);
         }
     }
     else if(curid==WRITE)
     {//|write (<exp>{,<exp>})
+        advance(tokenfile);//write
         advance(tokenfile);//左括弧
         QString writestr=expression(tokenfile);
-        quatlist[quatindex].opt="WRITE";;
-        quatlist[quatindex++].result=writestr;
+        struct quat quatemp={"WRITE","_","_",writestr};
+        quatlist.push_back(quatemp);
+        quatindex++;
+        // quatlist[quatindex].opt="WRITE";
+        // quatlist[quatindex++].result=writestr;
         advance(tokenfile);
         while(curid==SEMIC)
         {
             writestr=expression(tokenfile);
-            quatlist[quatindex].opt="write";
-            quatlist[quatindex++].result=writestr;
+            struct quat quatemp={"WRITE","_","_",writestr};
+            quatlist.push_back(quatemp);
+            quatindex++;
             advance(tokenfile);
         }
     }
-    else
+    else if(curid==BEGIN)
     {
         body(tokenfile);
     }
@@ -758,7 +817,7 @@ void pl0::statement(QFile&tokenfile)
 void pl0::checkstatement(QFile&tokenfile)
 {
     advancelook(tokenfile);
-    while(curid!=SYMBOL&&curid!=IF&&curid!=WHILE&&curid!=CALL&&curid!=BEGIN&&curid!=READ&&curid!=WRITE)
+    while(curid!=SYMBOL&&curid!=IF&&curid!=WHILE&&curid!=CALL&&curid!=BEGIN&&curid!=READ&&curid!=WRITE&&curid!=END)
     {
         advance(tokenfile);
         advancelook(tokenfile);
@@ -768,12 +827,16 @@ void pl0::checkstatement(QFile&tokenfile)
     {
         advance(tokenfile);
         int symindex=-1;
-        int temp=checkifsymdef();
-        if(temp==-1)errorflag=false;
-        else errorflag=true;
-        if(symindex!=-1)
+        symindex=checkifsymdef();
+        if(symindex==-1)//未定义
         {
-            errorflag=false;
+            advance(tokenfile);
+            errflag=false;
+            qDebug()<<"第"<<curline<<"行，标识符未定义\n";
+            errorlist=errorlist+"第"+QString::number(curline)+"行，标识符未定义\n";
+        }
+        else
+        {
             switch(tablelist[symindex].type)
             {
             case VAR:
@@ -800,6 +863,8 @@ void pl0::checkstatement(QFile&tokenfile)
                 break;
             }
         }
+        // if(symindex==-1)errorflag=false;
+        // else errorflag=true;
         advancelook(tokenfile);
         if(curid!=CEQU)
         {
@@ -849,10 +914,10 @@ void pl0::checkstatement(QFile&tokenfile)
             advance(tokenfile);
             checkstatement(tokenfile);
         }
-        else if(curid==SEMIC)
-        {
-            advance(tokenfile);
-        }
+        // else if(curid==SEMIC)
+        // {
+        //     advance(tokenfile);
+        // }
         else
         {
             errflag=false;
@@ -1244,10 +1309,15 @@ bool pl0::checkfactor(QFile&tokenfile)
     {
         int temp=checkifsymdef();
         if(temp==-1)return false;//检测变量是否是已经被定义的
-        else return true;
+        else
+        {
+            advance(tokenfile);
+            return true;
+        }
     }
     if(curid==CONST)
     {
+        advance(tokenfile);
         return true;
     }
     else if(curid==LBR)
@@ -1256,6 +1326,7 @@ bool pl0::checkfactor(QFile&tokenfile)
         advancelook(tokenfile);
         if(curid==RBR)
         {
+            advance(tokenfile);
             return true;
             advance(tokenfile);
         }
@@ -1293,7 +1364,7 @@ QString pl0::expression(QFile&tokenfile)
     while(curid==ADD||curid==SUB)
     {
         QString name=curname;
-        advance(tokenfile);
+        advance(tokenfile);//+/-
         QString tempstring=newtemp();
         QString termstr=term(tokenfile);
         quatemit(name,explace,termstr,tempstring);
@@ -1327,6 +1398,7 @@ QString pl0::factor(QFile&tokenfile)
     advancelook(tokenfile);
     if(curid==SYMBOL||curid==CONST)
     {
+        advance(tokenfile);
         return curname;
     }
     else if(curid==LBR)
@@ -1344,13 +1416,12 @@ QString pl0::newtemp()
 }
 void pl0::quatemit(QString opt,QString arg1,QString arg2,QString result)
 {
-    quatlist[quatindex].opt=opt;
-    quatlist[quatindex].arg1=arg1;
-    quatlist[quatindex].arg2=arg2;
-    quatlist[quatindex++].result=result;
+    struct quat quatemp={opt,arg1,arg2,result};
+    quatlist.push_back(quatemp);
+    quatindex++;
 }
 
-void pl0::writeQuatListToFile(const std::vector<quat>& quatlist)
+void pl0::writeQuatListToFile()
 {
     const QString filePath = "quat.txt";
     std::ofstream outFile(filePath.toStdString());

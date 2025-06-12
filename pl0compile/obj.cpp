@@ -14,8 +14,12 @@ void OBJECT::geneASM()
 {
     // 先写八股
     instVec.emplace_back("SEGMENT", "", "", "DSEG");
-    instVec.emplace_back("DB", "0", "", "TEMP"); // 用来存临时变量
-    instVec.emplace_back("DB", "0", "", "DATA"); // 数据
+    instVec.emplace_back("DB", "0", "", "TEMP");//用来存临时变量
+    for (const auto& array :arrayNames) {
+        int size = array.up - array.down + 1;
+        instVec.emplace_back("DB", QString::number(size) + " DUP(0)", "", array.name);
+    }
+    instVec.emplace_back("DB", "0", "", "DATA");//数据
     instVec.emplace_back("ENDS", "", "", "DSEG");
     instVec.emplace_back("", "", "");
     instVec.emplace_back("SEGMENT", "", "", "SSEG");
@@ -340,8 +344,27 @@ QString OBJECT::getAddr(const QString &name, const QString &curFun)
     {
         return name;
     }
-    if (!posMap[name].isMem)
-    {
+    // 检查是否为数组访问（例如 "arr[5]" 形式）
+    if (name.contains("[")) {
+        int pos = name.indexOf("[");
+        QString arrName = name.left(pos);
+        QString index = name.mid(pos + 1, name.length() - pos - 2);
+
+        // 查找数组信息
+        for (const auto& array : arrayNames) {
+            if (array.name == arrName) {
+                // 计算偏移量 = (索引 - 下界) * 元素大小
+                int offset = 0;
+                if (isNum(index)) {
+                    offset = (index.toInt() - array.down) * 1; // 假设每个元素1字节
+                }
+
+                // 生成数组元素地址: [数组基址 + 偏移量]
+                return "BYTE PTR [" + arrName + " + " + QString::number(offset) + "]";
+            }
+        }
+    }
+    if (!posMap[name].isMem) {
         return posMap[name].pos;
     }
     else

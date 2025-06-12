@@ -77,3 +77,33 @@ void assembly::on_pushButton_4_clicked()
 }
 
 
+
+void assembly::on_pushButton_5_clicked()
+{
+    QFile file("word analysis.txt");
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "无法打开文件！";
+        return;
+    }
+
+    QTextStream in(&file);
+
+    // 清空 text_Edit 的内容
+    ui->textEdit->clear();
+
+    // 按行读取文件内容并处理
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+
+        // 替换字符
+        line.replace("%", " ");
+        line.replace("$", " ");
+
+        // 将处理后的内容追加到 text_Edit
+        ui->textEdit->append(line);
+    }
+
+    file.close();
+}
+
+

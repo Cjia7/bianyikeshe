@@ -10,7 +10,7 @@
 #include<sstream>
 #include<iostream>
 #include<QString>
-
+#include <token.h>
 using namespace std;
 extern int test;
 namespace Ui {
@@ -95,14 +95,19 @@ public:
     QString factor(QFile&tokenfile);//<factor>→<id>|<integer>|(<exp>)
     QString newtemp();//返回新的临时变量
 
-    void lexp(QFile&tokenfile);//判断条件
-    void checkarray(QFile&tokenfile);//直接越过全部
+    QString lexp(QFile&tokenfile);//判断条件
+    bool reportError(const QString& message);
+    bool checkarray(QFile&tokenfile);
+    void checkoutarray(QFile&tokenfile);//直接越过全部
 
     void lop(QFile&tokenfile);
     void quatemit(QString opt,QString arg1,QString arg2,QString result);//填入四元式
 
     /*--------------与目标代码生成的链接---------------*/
     void writeQuatListToFile(const std::vector<quat>& quatlist);
+    bool isvaildarrayvar(const QString& name){
+
+    }
 
 private:
     Ui::pl0 *ui;

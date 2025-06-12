@@ -10,6 +10,7 @@
 #include<sstream>
 #include<iostream>
 #include<QString>
+
 using namespace std;
 extern int test;
 namespace Ui {
@@ -93,7 +94,10 @@ public:
     QString term(QFile&tokenfile);//<term> → <factor>{<mop><factor>}
     QString factor(QFile&tokenfile);//<factor>→<id>|<integer>|(<exp>)
     QString newtemp();//返回新的临时变量
-    QString lexp(QFile&tokenfile);//判断条件
+
+    void lexp(QFile&tokenfile);//判断条件
+    void checkarray(QFile&tokenfile);//直接越过全部
+
     void lop(QFile&tokenfile);
     void quatemit(QString opt,QString arg1,QString arg2,QString result);//填入四元式
 

@@ -1,46 +1,10 @@
 #include "pl0.h"
 #include "ui_pl0.h"
+
+#include <token.h>
 std::vector<pl0::table> pl0::tablelist;
 
-typedef enum {
-    PROGRAM = 1,      // "program"
-    BEGIN,            // "begin"
-    END,              // "end"
-    IF,               // "if"
-    THEN,             // "then"
-    ELSE,             // "else"
-    CON,              // "const"
-    PROCEDURE,        // "procedure"
-    VAR,              // "var"
-    DO,               // "do"
-    WHILE,            // "while"
-    CALL,             // "call"
-    READ,             // "read"
-    WRITE,            // "write"
-    REPEAT,           // "repeat"
-    ODD,              // "odd"
 
-    EQU,              // "="
-    LES,              // "<"
-    LESE,             // "<="
-    LARE,             // ">="
-    LAR,              // ">"
-    NEQU,             // "<>"
-    ADD,              // "+"
-    SUB,              // "-"
-    MUL,              // "*"
-    DIV,              // "/"
-
-    SYMBOL,           // 标识符
-    CONST,            // 常量
-    CEQU,             // ":="
-    COMMA,            // ","
-    SEMIC,            // ";"
-    POI,              // "."
-    LBR,              // "("
-    RBR               // ")"
-}TokenType;
-extern TokenType tokentype;
 pl0::pl0(QWidget *parent)
     : QWidget(parent)  // 这里 parent 是传入的 QWidget*
     , ui(new Ui::pl0)
@@ -56,9 +20,9 @@ pl0::~pl0()
 {
     delete ui;
 }
-
-
 //将begin给出提示
+
+
 
 void pl0::advance(QFile&tokenfile)
 {
@@ -112,6 +76,17 @@ void pl0::advancelook(QFile&tokenfile)
         }
     }
 }
+void pl0::checkarray(QFile&tokenfile){
+     advance(tokenfile);//:
+     advance(tokenfile);//array
+      advance(tokenfile);// [
+     advance(tokenfile);//down
+      advance(tokenfile);//.
+     advance(tokenfile);//.
+      advance(tokenfile);//up
+      advance(tokenfile);//of
+    advance(tokenfile);//int
+}
 
 void pl0::checkprog(QFile&tokenfile)
 {
@@ -124,6 +99,7 @@ void pl0::checkprog(QFile&tokenfile)
         if(curid==SYMBOL)
         {
             QString name=curname;
+
             advance(tokenfile);
             advancelook(tokenfile);
             if(curid==SEMIC)
@@ -149,6 +125,7 @@ void pl0::checkprog(QFile&tokenfile)
                     errorlist=errorlist+"第"+QString::number(curline)+"行"+"主过程定义错误";
                 }
             }
+
         }
         else
         {
@@ -182,6 +159,7 @@ void pl0::prog(QFile&tokenfile)
     quatlist[quatindex].arg1=curname;
     advance(tokenfile);//;
     block(tokenfile);
+
 }
 
 bool pl0::checkblock(QFile&tokenfile)
@@ -427,6 +405,9 @@ void pl0::checkvar(QFile&tokenfile)
             opsymrefeferr(curname);
             errflag=false;
         }
+        if(isArrayName(curname.toStdString())){
+            checkarray(tokenfile);
+        }
         advancelook(tokenfile);
         while(curid==COMMA)
         {
@@ -434,6 +415,7 @@ void pl0::checkvar(QFile&tokenfile)
             advancelook(tokenfile);
             if(curid==SYMBOL)
             {
+
                 advance(tokenfile);
                 if(checksymredef(curname,curlevel)==-1)
                 {
@@ -446,6 +428,9 @@ void pl0::checkvar(QFile&tokenfile)
                 {
                     opsymrefeferr(curname);
                     errflag=false;
+                }
+                if(isArrayName(curname.toStdString())){
+                    checkarray(tokenfile);
                 }
             }
             else
@@ -639,6 +624,7 @@ void pl0::statement(QFile&tokenfile)
         advance(tokenfile);
         quatemit("DO",arg1,"_","_");
         statement(tokenfile);
+        quatemit("WHEND","_","_","_");
     }
     else if(curid==CALL)
     {
@@ -1276,11 +1262,26 @@ void pl0::quatemit(QString opt,QString arg1,QString arg2,QString result)
     quatlist[quatindex++].result=result;
 }
 
+void pl0::writeQuatListToFile(const std::vector<quat>& quatlist)
+{
+    const QString filePath = "quat.txt";
 
-//<lexp> → <exp> <lop> <exp>|odd <exp>
-
-
-
+    std::ofstream outFile(filePath.toStdString());
+    if (!outFile.is_open())
+    {
+        std::cerr << "无法打开文件: " << filePath.toStdString() << std::endl;
+        return;
+    }
+    // 写入数据（空格分隔）
+    for (const quat& q : quatlist) {
+        outFile << q.opt.toStdString() << " "
+                << q.arg1.toStdString() << " "
+                << q.arg2.toStdString() << " "
+                << q.result.toStdString() << "\n";
+    }
+    outFile.close();
+    std::cout << "文件写入成功: " << filePath.toStdString() << std::endl;
+}
 
 
 

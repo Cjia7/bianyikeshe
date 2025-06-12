@@ -8,6 +8,8 @@
 #include "dag.h"
 using namespace std;
 
+std::vector<Instruction> OBJECT::instVec;
+
 void OBJECT::geneASM()
 {
     //先写八股
@@ -35,59 +37,59 @@ void OBJECT::geneASM()
         posMap.clear();
         //一个基本块开始前，先基本块内所有的变量都设为内存变量
         for (auto qt : block.basic_block) {
-            if (isOperator(qt.op)) {
+            if (isOperator1(qt.op)) {
                 posMap[qt.arg1] = Position(qt.arg1, true);
-                if (qt.arg2 != "__") posMap[qt.arg2] = Position(qt.arg2, true);
+                if (qt.arg2 != "") posMap[qt.arg2] = Position(qt.arg2, true);
                 posMap[qt.result] = Position(qt.result, true);
             }
         }
         for (auto qt : block.basic_block) {
-            if (isOperator(qt.op)) {
+            if (isOperator2(qt.op)) {
                 QString R, B, C;
                 getR(qt, R, B, C, block.curFun);
                 if (qt.op == OPTIMIZE::OperatorType::ASSIGN) {
                     //如果是赋值语句
-                    if (R != B) instVec.emplace_back("MOV", R, B);
+                    if (R != B) instVec.emplace_back("MOV", R, ","+B);
                     posMap[qt.result] = Position(R, false);
                     RDL[R] = qt.result;
                 }
                 else {
-                    if (R != B) instVec.emplace_back("MOV", R, B);
+                    if (R != B) instVec.emplace_back("MOV", R,","+ B);
                     if (qt.op == OPTIMIZE::OperatorType::MUL) {
-                        instVec.emplace_back("MOV", "AL", B);
-                        instVec.emplace_back("MOV", "AH", "0");
+                        instVec.emplace_back("MOV", "AL",","+ B);
+                        instVec.emplace_back("MOV", "AH", ",0");
                         if (isNum(C)) {
                             //MUL不能接立即数，因此需要将此立即数存起来
-                            instVec.emplace_back("MOV", "TEMP", C);
+                            instVec.emplace_back("MOV", "TEMP",","+ C);
                             instVec.emplace_back("MUL", "TEMP", "");
                         }
                         else {
                             instVec.emplace_back("MUL", C, "");
                         }
-                        instVec.emplace_back("MOV", R, "AL");
+                        instVec.emplace_back("MOV", R, ",AL");
                     }
                     else if (qt.op == OPTIMIZE::OperatorType::DIV) {
-                        instVec.emplace_back("MOV", "AL", B);
-                        instVec.emplace_back("MOV", "AH", "0");
+                        instVec.emplace_back("MOV", "AL",","+ B);
+                        instVec.emplace_back("MOV", "AH", ",0");
                         if (isNum(C)) {
                             //DIV不能接立即数，因此需要将此立即数存起来
-                            instVec.emplace_back("MOV", "TEMP", C);
+                            instVec.emplace_back("MOV", "TEMP", ","+C);
                             instVec.emplace_back("DIV", "TEMP", "");
                         }
                         else {
                             instVec.emplace_back("DIV", C, "");
                         }
-                        instVec.emplace_back("MOV", R, "AL");
+                        instVec.emplace_back("MOV", R, ",AL");
                     }
                     else if (qt.op == OPTIMIZE::OperatorType::ADD) {
-                        instVec.emplace_back("ADD", R, C);
+                        instVec.emplace_back("ADD", R, ","+C);
                     }
                     else if (qt.op == OPTIMIZE::OperatorType::SUB) {
-                        instVec.emplace_back("SUB", R, C);
+                        instVec.emplace_back("SUB", R, ","+C);
                     }
                     else if (qt.op == OPTIMIZE::OperatorType::EQUAL || qt.op == OPTIMIZE::OperatorType::GREATER || qt.op == OPTIMIZE::OperatorType::LESS ||
                              qt.op == OPTIMIZE::OperatorType::GREATER_EQUAL || qt.op == OPTIMIZE::OperatorType::LESS_EQUAL || qt.op == OPTIMIZE::OperatorType::NOT_EQUAL) {
-                        instVec.emplace_back("CMP", R, C);
+                        instVec.emplace_back("CMP", R, ","+C);
                         cmpType = qt.op;
                     }
                     posMap[qt.result] = Position(R, false);
@@ -97,7 +99,13 @@ void OBJECT::geneASM()
             else if (qt.op == OPTIMIZE::IF) {
                 //如果是跳转语句，因为跳转语句需要判断的对象必然刚计算完毕，故可以用标志转移指令进行跳转
                 saveR(block.curFun);
-                if (cmpType == OPTIMIZE::OperatorType::LESS) {
+                if(isNum(qt.arg1))
+                {
+                    if(qt.arg1.toInt() == 0) {
+                        instVec.emplace_back("JMP", "", "");//如果是0则直接跳过
+                    }
+                }
+                else if (cmpType == OPTIMIZE::OperatorType::LESS) {
                     instVec.emplace_back("JAE", "", "");
                     }
                 else if (cmpType == OPTIMIZE::OperatorType::GREATER) {
@@ -134,12 +142,18 @@ void OBJECT::geneASM()
                 labelNow++;
             }
             else if (qt.op == OPTIMIZE::DO) {
-                saveR(block.curFun);//..........
-                if (cmpType == OPTIMIZE::LESS) {
-                    instVec.emplace_back("JAE", "", "");
+                saveR(block.curFun);
+                if(isNum(qt.arg1))
+                {
+                    if(qt.arg1.toInt() == 0) {
+                        instVec.emplace_back("JMP", "", "");//如果是0则直接跳过
+                    }
+                }
+                else if (cmpType == OPTIMIZE::LESS) {
+                    instVec.emplace_back("JBE", "", "");
                 }
                 else if (cmpType == OPTIMIZE::GREATER) {
-                    instVec.emplace_back("JBE", "", "");
+                    instVec.emplace_back("JAE", "", "");
                 }
                 else if (cmpType == OPTIMIZE::EQUAL) {
                     instVec.emplace_back("JNE", "", "");
@@ -160,17 +174,18 @@ void OBJECT::geneASM()
                 instVec[temp].name1 = instVec[pos].label;
             }
             else if (qt.op == OPTIMIZE::PROGRAM) {
-                    instVec.emplace_back("", "", "", "MAIN:");
-                    instVec.emplace_back("MOV", "AX", "DSEG");
-                    instVec.emplace_back("MOV", "DS", "AX");
-                    instVec.emplace_back("MOV", "AX", "SSEG");
-                    instVec.emplace_back("MOV", "SS", "AX");
-                    instVec.emplace_back("MOV", "SI", "0");
-                    instVec.emplace_back("LEA", "BP", "DATA");
+                    instVec.emplace_back("", "", "", qt.arg1 + ":");
+                    instVec.emplace_back("MOV", "AX", ",DSEG");
+                    instVec.emplace_back("MOV", "DS", ",AX");
+                    instVec.emplace_back("MOV", "AX", ",SSEG");
+                    instVec.emplace_back("MOV", "SS", ",AX");
+                    instVec.emplace_back("MOV", "SI", ",0");
+                    instVec.emplace_back("LEA", "BP", ",DATA");
                 }
             else if( qt.op == OPTIMIZE::PROCEDURE) {
                 instVec.emplace_back("PROC", "NEAR", "", block.curFun);
-                rec= {(int)(instVec.size()-1), 0};
+                rec= {(int)(instVec.size()-1), 0,block.curFun};
+                record.push_back(rec);
             }
             else if (qt.op == OPTIMIZE::PROCEDURE_END){
                 if (block.curFun == "main") {
@@ -179,8 +194,11 @@ void OBJECT::geneASM()
                 }
                 else {
                     instVec.emplace_back("ENDP", "", "", block.curFun);
-                    rec.end = (int)(instVec.size() - 1);
-                    record.push_back(rec);
+                    for(auto &r: record) 
+                        if (r.curProce == block.curFun) {
+                            r.end = instVec.size();
+                            break;
+                        }
                 }
             }
             /* else if (qt.op == "return") {
@@ -201,20 +219,36 @@ void OBJECT::geneASM()
             }
             else if (qt.op == OPTIMIZE::WRITE) {
                 saveR(block.curFun);
-                instVec.emplace_back("MOV", "DL", getAddr(qt.arg1, block.curFun),"");
-                instVec.emplace_back("ADD", "DL", "30H","");
-                instVec.emplace_back("MOV", "AH", "02H","");
-                instVec.emplace_back("INT", "21H", "","");
+                instVec.emplace_back("MOV", "DL", ","+getAddr(qt.arg1, block.curFun));
+                instVec.emplace_back("ADD", "DL", ",30H");
+                instVec.emplace_back("MOV", "AH", ",02H");
+                instVec.emplace_back("INT", "21H", "");
             }
             else if (qt.op == OPTIMIZE::RED) {
                 saveR(block.curFun);
-                instVec.emplace_back("MOV", "AH", "01H","");
-                instVec.emplace_back("SUB", "DL", "30H","");
+                instVec.emplace_back("MOV", "AH", ",01H","");
+                instVec.emplace_back("SUB", "DL", ",30H","");
                 instVec.emplace_back("INT", "21H", "","");
-                instVec.emplace_back("MOV", getAddr(qt.arg1, block.curFun), "AL","");
+                instVec.emplace_back("MOV", getAddr(qt.arg1, block.curFun), ",AL","");
             }
         }
+        
     }
+    save_instVec("test.asm");
+    /*     for(auto &inst: instVec) {
+                std::cout << inst.label.toStdString() << " "
+                          << inst.op.toStdString() << " "
+                          << inst.name1.toStdString() << " "
+                          << inst.name2.toStdString() << std::endl;
+            }
+        std::cout<<std::endl;
+        std::cout<<"-----------------reorder------------------"<<std::endl; */
+    //重排指令序列
+        for(auto &rec:record)
+            instVec.insert(instVec.end(), instVec.begin() + rec.begin, instVec.begin() + rec.end);
+        for (auto rec = record.rbegin(); rec != record.rend(); ++rec) {
+            instVec.erase(instVec.begin() + rec->begin, instVec.begin() + rec->end);
+        }
 }
 
 OBJECT::SymbolInfo OBJECT::getSymbolInfo(const QString& name, const QString& curFun) {
@@ -281,7 +315,7 @@ void OBJECT::saveR(const QString& curFun) {
         if (!pair.second.isEmpty()) {
             if (isActive(pair.second, curFun)) {
                 posMap[pair.second].isMem = true;
-                instVec.emplace_back("MOV", getAddr(pair.second, curFun), pair.first);
+                instVec.emplace_back("MOV", getAddr(pair.second, curFun), ","+pair.first);
                 RDL[pair.first].clear();
             } else {
                 RDL[pair.first].clear();
@@ -300,7 +334,7 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
             QString emptyR = findEmpty();
             //如果有空寄存器，B存到空寄存器中
             if (!emptyR.isEmpty()) {
-                instVec.emplace_back("MOV", emptyR, posMap[qt.arg1].pos);
+                instVec.emplace_back("MOV", emptyR, ","+posMap[qt.arg1].pos);
                 RDL[emptyR] = qt.arg1;
                 R = getAddr(qt.arg1, curFun); B = emptyR;
                 if (qt.op != OPTIMIZE::OperatorType::ASSIGN) C = getAddr(qt.arg2, curFun);
@@ -310,7 +344,7 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
             //如果没有空寄存器，B存到内存中
             else {
                 posMap[qt.arg1].isMem = true;
-                instVec.emplace_back("MOV", getAddr(qt.arg1, curFun), posMap[qt.arg1].pos);
+                instVec.emplace_back("MOV", getAddr(qt.arg1, curFun),","+ posMap[qt.arg1].pos);
                 R = posMap[qt.arg1].pos; B = getAddr(qt.arg1, curFun);
                 if (qt.op != OPTIMIZE::OperatorType::ASSIGN) C = getAddr(qt.arg2, curFun);
                 RDL[posMap[qt.arg1].pos].clear();
@@ -334,7 +368,7 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
         if (qt.isactive1 && (!posMap[qt.arg1].isMem || qt.arg1 != qt.result)) {
             QString emptyR = findEmpty();
             if (!emptyR.isEmpty()) {
-                instVec.emplace_back("MOV", emptyR, posMap[qt.arg1].pos);
+                instVec.emplace_back("MOV", emptyR,","+ posMap[qt.arg1].pos);
                 RDL[emptyR] = qt.arg1;
                 R = getAddr(qt.arg1, curFun); B = emptyR;
                 if (qt.op != OPTIMIZE::OperatorType::ASSIGN ) C = getAddr(qt.arg2, curFun);
@@ -342,7 +376,7 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
                 posMap[qt.arg1] = Position(emptyR, false);
             } else {
                 posMap[qt.arg1].isMem = true;
-                instVec.emplace_back("MOV", getAddr(qt.arg1, curFun), posMap[qt.arg1].pos);
+                instVec.emplace_back("MOV", getAddr(qt.arg1, curFun),","+ posMap[qt.arg1].pos);
                 R = posMap[qt.arg1].pos; B = getAddr(qt.arg1, curFun);
                 if (qt.op != OPTIMIZE::OperatorType::ASSIGN) C = getAddr(qt.arg2, curFun);
                 RDL[posMap[qt.arg1].pos].clear();
@@ -381,7 +415,7 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
                 }
             }
         }
-        instVec.emplace_back("MOV", obj, objPos);
+        instVec.emplace_back("MOV", obj, ","+objPos);
         RDL[objPos].clear();
         posMap[obj] = Position(obj, true);
         R = objPos; B = getAddr(qt.arg1, curFun);
@@ -389,22 +423,65 @@ void OBJECT::getR(const OPTIMIZE::QuadTuple& qtInput, QString& R, QString& B, QS
     }
 }
 
+void OBJECT::save_instVec(QString filename)
+{
+    //将指令序列保存到文件中
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::critical(nullptr, "Error", "Cannot open file for writing: " + filename);
+        return;
+    }
+    QTextStream out(&file);
+    for (const auto& inst : instVec) {
+        out << inst.label << " " << inst.op << " " << inst.name1 << " " << inst.name2 << "\n";
+    }
+    file.close();
+}
+
 bool OBJECT::isActive(const QString& name, QString curFun)
 {
-    SymbolInfo info = getSymbolInfo(name, curFun);
+    if(name[0] == 't') {
+        //如果是临时变量，直接返回true
+        return false;
+    }
+    return true;
+    /* SymbolInfo info = getSymbolInfo(name, curFun);
     if (info.isIN) {
         //如果在符号表中，说明是活跃的
         return true;
     } else {
         //如果不在符号表中，说明不是活跃的
         return false;
+    } */
+}
+
+bool OBJECT::isOperator1(const OPTIMIZE::OperatorType& op)
+{
+    //检查是否为操作符
+    switch (op) {
+        case OPTIMIZE::OperatorType::ASSIGN:
+        case OPTIMIZE::OperatorType::ADD:
+        case OPTIMIZE::OperatorType::SUB:
+        case OPTIMIZE::OperatorType::MUL:
+        case OPTIMIZE::OperatorType::DIV:
+        case OPTIMIZE::OperatorType::EQUAL:
+        case OPTIMIZE::OperatorType::GREATER:
+        case OPTIMIZE::OperatorType::LESS:
+        case OPTIMIZE::OperatorType::GREATER_EQUAL:
+        case OPTIMIZE::OperatorType::LESS_EQUAL:
+        case OPTIMIZE::OperatorType::NOT_EQUAL:
+        case OPTIMIZE::OperatorType::WRITE:
+        case OPTIMIZE::OperatorType::RED:
+            return true;
+        default:
+            return false;
     }
 }
 
-bool OBJECT::isOperator(const OPTIMIZE::OperatorType& qt)
+bool OBJECT::isOperator2(const OPTIMIZE::OperatorType& op)
 {
     //检查是否为操作符
-    switch (qt) {
+    switch (op) {
         case OPTIMIZE::OperatorType::ASSIGN:
         case OPTIMIZE::OperatorType::ADD:
         case OPTIMIZE::OperatorType::SUB:

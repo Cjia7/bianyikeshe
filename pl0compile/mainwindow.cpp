@@ -20,35 +20,35 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
-void MainWindow::analyzeText() {
-    // 获取 textEdit 里的文本
-    QString inputText = ui->textEdit->toPlainText();
-    // 创建 token 解析对象
-    token tokenizer(nullptr, inputText.toStdString());
-    // 执行词法分析
-    tokenizer.scan();
-    // 获取所有输出信息，包括错误和分析结果
-    QString outputText = QString::fromStdString(tokenizer.getOutputText());
-    // 显示在 textEdit_2
+// void MainWindow::analyzeText() {
+//     // 获取 textEdit 里的文本
+//     QString inputText = ui->textEdit->toPlainText();
+//     // 创建 token 解析对象
+//     token tokenizer(nullptr, inputText.toStdString());
+//     // 执行词法分析
+//     tokenizer.scan();
+//     // 获取所有输出信息，包括错误和分析结果
+//     QString outputText = QString::fromStdString(tokenizer.getOutputText());
+//     // 显示在 textEdit_2
 
-    QFile tokenfile("word analysis.txt"); // 或者使用绝对路径
-    if (!tokenfile.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-        qDebug() << "无法打开文件:" << tokenfile.errorString();
-        return; // 或其他错误处理
-    }
-    pl0comp.checkprog(tokenfile);//语法分析
-    if(pl0comp.errflag)//语法分析没有错误
-    {
-        tokenfile.seek(0);//从头开始，再扫描一遍
-        pl0comp.prog(tokenfile);//语义分析
-    }
-    else
-    {
-        outputText=outputText+pl0comp.errorlist;
-    }
-    ui->textEdit_2->setPlainText(outputText);
-}
+//     QFile tokenfile("word analysis.txt"); // 或者使用绝对路径
+//     if (!tokenfile.open(QIODevice::ReadOnly | QIODevice::Text))
+//     {
+//         qDebug() << "无法打开文件:" << tokenfile.errorString();
+//         return; // 或其他错误处理
+//     }
+//     pl0comp.checkprog(tokenfile);//语法分析
+//     if(pl0comp.errflag)//语法分析没有错误
+//     {
+//         tokenfile.seek(0);//从头开始，再扫描一遍
+//         pl0comp.prog(tokenfile);//语义分析
+//     }
+//     else
+//     {
+//         outputText=outputText+pl0comp.errorlist;
+//     }
+//     ui->textEdit_2->setPlainText(outputText);
+// }
 void MainWindow::on_actions_triggered()
 {
     // 获取当前选项卡
@@ -278,7 +278,7 @@ void MainWindow::on_actions_2_triggered()
     }
     else
     {
-        ui->textEdit_2->setPlainText(outputText);
+      //  ui->textEdit->setPlainText(outputText);
     }
 }
 

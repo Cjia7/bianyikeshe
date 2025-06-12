@@ -104,7 +104,7 @@ public:
     void quatemit(QString opt,QString arg1,QString arg2,QString result);//填入四元式
 
     /*--------------与目标代码生成的链接---------------*/
-    void writeQuatListToFile(const std::vector<quat>& quatlist);
+    void writeQuatListToFile();
     bool isvaildarrayvar(const QString& name){
 
     }

@@ -117,6 +117,23 @@ void OBJECT::geneASM()
                         instVec.emplace_back("CMP", R, "," + C);
                         cmpType = qt.op;
                     }
+                    else if(qt.op==OPTIMIZE::OperatorType::MOD)
+                    {
+                        cmpType = OPTIMIZE::OperatorType::MOD;
+                        instVec.emplace_back("MOV", "AL", "," + B);
+                        instVec.emplace_back("MOV", "AH", ",0");
+                        if (isNum(C))
+                        {
+                            // DIV不能接立即数，因此需要将此立即数存起来
+                            instVec.emplace_back("MOV", "TEMP", "," + C);
+                            instVec.emplace_back("DIV", "TEMP", "");
+                        }
+                        else
+                        {
+                            instVec.emplace_back("DIV", C, "");
+                        }
+                        instVec.emplace_back("CMP", "AH", ",0");
+                    }
                     posMap[qt.result] = Position(R, false);
                     RDL[R] = qt.result;
                 }
@@ -129,20 +146,24 @@ void OBJECT::geneASM()
                 {
                     if (qt.arg1.toInt() == 0)
                     {
-                        instVec.emplace_back("JMP", "", ""); // 如果是0则直接跳过
+                        instVec.emplace_back("JMP", "", ""); // 如果是0则直接跳转
                     }
                 }
                 else if (cmpType == OPTIMIZE::OperatorType::LESS)
                 {
-                    instVec.emplace_back("JAE", "", "");
+                    instVec.emplace_back("JB", "", "");
                 }
                 else if (cmpType == OPTIMIZE::OperatorType::GREATER)
                 {
-                    instVec.emplace_back("JBE", "", "");
+                    instVec.emplace_back("JA", "", "");
                 }
                 else if (cmpType == OPTIMIZE::OperatorType::EQUAL)
                 {
                     instVec.emplace_back("JNE", "", "");
+                }
+                else if(cmpType == OPTIMIZE::OperatorType::MOD)
+                {
+                    instVec.emplace_back("JZ", "", ""); // 如果余数为0则跳转
                 }
                 sem.push(instVec.size() - 1); // 等待回填
             }
@@ -186,11 +207,11 @@ void OBJECT::geneASM()
                 }
                 else if (cmpType == OPTIMIZE::LESS)
                 {
-                    instVec.emplace_back("JBE", "", "");
+                    instVec.emplace_back("JB", "", "");
                 }
                 else if (cmpType == OPTIMIZE::GREATER)
                 {
-                    instVec.emplace_back("JAE", "", "");
+                    instVec.emplace_back("JA", "", "");
                 }
                 else if (cmpType == OPTIMIZE::EQUAL)
                 {
@@ -600,6 +621,7 @@ bool OBJECT::isOperator1(const OPTIMIZE::OperatorType &op)
     case OPTIMIZE::OperatorType::NOT_EQUAL:
     case OPTIMIZE::OperatorType::WRITE:
     case OPTIMIZE::OperatorType::RED:
+    case OPTIMIZE::OperatorType::MOD:
         return true;
     default:
         return false;
@@ -622,6 +644,7 @@ bool OBJECT::isOperator2(const OPTIMIZE::OperatorType &op)
     case OPTIMIZE::OperatorType::GREATER_EQUAL:
     case OPTIMIZE::OperatorType::LESS_EQUAL:
     case OPTIMIZE::OperatorType::NOT_EQUAL:
+    case OPTIMIZE::OperatorType::MOD:
         return true;
     default:
         return false;

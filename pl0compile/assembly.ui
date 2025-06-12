@@ -24,7 +24,7 @@ color: rgb(20, 20, 20);</string>
    <property name="geometry">
     <rect>
      <x>540</x>
-     <y>210</y>
+     <y>230</y>
      <width>121</width>
      <height>41</height>
     </rect>
@@ -45,7 +45,7 @@ color: rgb(20, 20, 20);</string>
    <property name="geometry">
     <rect>
      <x>540</x>
-     <y>130</y>
+     <y>110</y>
      <width>121</width>
      <height>41</height>
     </rect>
@@ -169,13 +169,27 @@ color: rgb(20, 20, 20);</string>
     <string>返回</string>
    </property>
   </widget>
-  <zorder>pushButton_2</zorder>
-  <zorder>pushButton_3</zorder>
-  <zorder>pushButton_4</zorder>
-  <zorder>scrollArea</zorder>
-  <zorder>pushButton_5</zorder>
-  <zorder></zorder>
-  <zorder>pushButton</zorder>
+  <widget class="QPushButton" name="pushButton_6">
+   <property name="geometry">
+    <rect>
+     <x>540</x>
+     <y>170</y>
+     <width>121</width>
+     <height>41</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">QPushButton {
+    border-radius: 10px;
+	color: rgb(0, 0, 0);
+	font: 10pt &quot;黑体&quot;;
+	background-color: rgb(255, 255, 255);
+}</string>
+   </property>
+   <property name="text">
+    <string>优化</string>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>

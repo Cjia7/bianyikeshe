@@ -52,6 +52,7 @@ public:
     OBJECT()= default;
     OBJECT(const OBJECT&) = default;
     OBJECT(std::vector<OPTIMIZE::BasicBlock> blocks): Rblocks(blocks) {
+        instVec.clear();
         geneASM();
         save_instVec("output.asm");
         std::cout << "汇编代码生成完毕" << std::endl;

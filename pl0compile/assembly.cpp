@@ -1,5 +1,7 @@
 #include "assembly.h"
 #include "ui_assembly.h"
+#include "dag.h"
+#include "obj.h"
 #include <QFile>         // 处理文件读写
 #include <QTextStream>   // 处理文本流
 #include <QProcess>      // 启动外部进程（用于运行 VSCode）
@@ -106,4 +108,32 @@ void assembly::on_pushButton_5_clicked()
     file.close();
 }
 
+
+
+void assembly::on_pushButton_2_clicked()
+{
+    OBJECT a(OPTIMIZE::DbasicBlocks);
+    ui->textEdit->clear();
+    for(const auto &ins:OBJECT::instVec) {
+        QString line = QString("%1 %2 %3 %4")
+                               .arg(ins.label,ins.op, ins.name1, ins.name2);
+        ui->textEdit->append(line);
+    }
+}
+
+
+void assembly::on_pushButton_6_clicked()
+{
+    OPTIMIZE a(0);
+    ui->textEdit->clear();
+    for (const auto &block : OPTIMIZE::DbasicBlocks) {
+        for (const auto &qt : block.basic_block) {
+            QString line = QString("op: %1, arg1: %2, arg2: %3, result: %4")
+                               .arg(a.OPTIMIZE::OTQ(qt.op), qt.arg1, qt.arg2, qt.result);
+            ui->textEdit->append(line);
+        }
+        ui->textEdit->append(QString("当前基本块函数名：%1").arg(block.curFun));
+        ui->textEdit->append("------------------------");
+    }
+}
 

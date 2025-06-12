@@ -131,21 +131,53 @@ void MainWindow::on_actiondsd_triggered()
     // 获取当前选项卡的 QWidget
     QWidget *currentTab = ui->tabWidget->widget(currentIndex);
 
-    // 在当前选项卡中查找 QTextEdit
-    QTextEdit *currentEditor = currentTab->findChild<QTextEdit*>();
-    if (!currentEditor) return;  // 如果没有找到 QTextEdit，则返回
-    // 创建新的选项卡窗口
-    QWidget *newTab = new QWidget;
-    QVBoxLayout *layout = new QVBoxLayout(newTab);
+    if (currentTab) {
+        // 找到当前选项卡中的 QScrollArea
+        QScrollArea *currentScrollArea = currentTab->findChild<QScrollArea*>();
+        if (currentScrollArea) {
+            // 获取 QScrollArea 的内容部件
+            QWidget *currentContent = currentScrollArea->widget();
+            if (currentContent) {
+                // 创建新的选项卡
+                QWidget *newTab = new QWidget;
+                QVBoxLayout *layout = new QVBoxLayout(newTab);
 
-    // 创建新的 QTextEdit 作为编辑区
-    QTextEdit *newEditor = new QTextEdit;
-    newEditor->setPlaceholderText("这里是新建的选项卡");
+                // 创建新的 QScrollArea 并复制属性
+                QScrollArea *newScrollArea = new QScrollArea;
+                newScrollArea->setGeometry(currentScrollArea->geometry()); // 复制位置
+                newScrollArea->setStyleSheet(currentScrollArea->styleSheet()); // 复制样式表
+                newScrollArea->setWidgetResizable(currentScrollArea->widgetResizable()); // 复制 widgetResizable 属性
 
-    layout->addWidget(newEditor);
-    newTab->setLayout(layout);
-    // 添加到 TabWidget，并设置选项卡标题
-    ui->tabWidget->addTab(newTab, "新建窗口");
+                // 创建新的内容部件并复制属性
+                QWidget *newContent = new QWidget;
+                newContent->setGeometry(currentContent->geometry()); // 复制位置
+                newContent->setStyleSheet(currentContent->styleSheet()); // 复制样式表
+                newContent->setFixedWidth(currentContent->width()); // 复制宽度
+                newContent->setFixedHeight(currentContent->height()); // 复制高度
+
+                // 在新内容中添加新的 QTextEdit 并复制属性
+                if (QTextEdit *currentEditor = currentContent->findChild<QTextEdit*>()) {
+                    QTextEdit *newEditor = new QTextEdit;
+                    newEditor->setGeometry(currentEditor->geometry()); // 复制位置
+                    newEditor->setStyleSheet(currentEditor->styleSheet()); // 复制样式表
+                    newEditor->setFixedWidth(currentEditor->width()); // 复制宽度
+                    newEditor->setFixedHeight(currentEditor->height()); // 复制高度
+                    newContent->setLayout(new QVBoxLayout); // 添加布局
+                    newContent->layout()->addWidget(newEditor);
+                }
+
+                // 设置新的内容部件到新的 QScrollArea
+                newScrollArea->setWidget(newContent);
+
+                // 添加 QScrollArea 到新选项卡
+                layout->addWidget(newScrollArea);
+                newTab->setLayout(layout);
+
+                // 添加到 TabWidget
+                ui->tabWidget->addTab(newTab, "新建窗口");
+            }
+        }
+    }
 }
 
 

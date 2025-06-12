@@ -19,44 +19,44 @@ namespace Ui {
 class token;
 }
 enum TokenType {
-    PROGRAM = 1,      // "program"1
-    BEGIN,            // "begin"2
-    END,              // "end"3
-    IF,               // "if"4
-    THEN,             // "then"5
-    ELSE,             // "else"6
-    CON,              // "const"7
-    PROCEDURE,        // "procedure"8
-    VAR,              // "var"9
-    DO,               // "do"10
-    WHILE,            // "while"11
-    CALL,             // "call"12
-    READ,             // "read"13
-    WRITE,            // "write"14
-    REPEAT,           // "repeat"15
-    ODD,              // "odd"16
-    EQU,              // "="17
-    LES,              // "<"18
-    LESE,             // "<="19
-    LARE,             // ">="20
-    LAR,              // ">"21
-    NEQU,             // "<>"22
-    ADD,              // "+"23
-    SUB,              // "-"24
-    MUL,              // "*"25
-    DIV,              // "/"26
-    SYMBOL,           // 标识符27
-    CONST,            // 常量28
-    CEQU,             // ":="29
-    COMMA,            // ","30
-    SEMIC,            // ";"31
-    POI,              // "."32
-    LBR,              // "("33
-    RBR,               // ")"34
-    ARR,                //"array"35
-    LBK,               //"["36
-    RBK,                //"]"37
-    COL                 //":"38
+    PROGRAM = 1,      // "program"
+    BEGIN,            // "begin"
+    END,              // "end"
+    IF,               // "if"
+    THEN,             // "then"
+    ELSE,             // "else"
+    CON,              // "const"
+    PROCEDURE,        // "procedure"
+    VAR,              // "var"
+    DO,               // "do"
+    WHILE,            // "while"
+    CALL,             // "call"
+    READ,             // "read"
+    WRITE,            // "write"
+    REPEAT,           // "repeat"
+    ODD,              // "odd"
+    EQU,              // "="
+    LES,              // "<"
+    LESE,             // "<="
+    LARE,             // ">="
+    LAR,              // ">"
+    NEQU,             // "<>"
+    ADD,              // "+"
+    SUB,              // "-"
+    MUL,              // "*"
+    DIV,              // "/"
+    SYMBOL,           // 标识符
+    CONST,            // 常量
+    CEQU,             // ":="
+    COMMA,            // ","
+    SEMIC,            // ";"
+    POI,              // "."
+    LBR,              // "("
+    RBR,               // ")"
+    ARR,                //"array"
+    LBK,               //"["
+    RBK,                //"]"
+    COL                 //":"
 };
 extern unordered_map<string, TokenType> tokenMap;
 struct Token {

@@ -27,7 +27,7 @@
      </rect>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="page">
      <property name="geometry">
@@ -39,7 +39,7 @@
       </rect>
      </property>
      <attribute name="label">
-      <string>Page 1</string>
+      <string>Code</string>
      </attribute>
      <widget class="QTabWidget" name="tabWidget">
       <property name="geometry">
@@ -56,9 +56,9 @@
       <property name="tabsClosable">
        <bool>true</bool>
       </property>
-      <widget class="QWidget" name="tab_1">
+      <widget class="QWidget" name="tab">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>文件</string>
        </attribute>
        <widget class="QScrollArea" name="scrollArea">
         <property name="geometry">
@@ -109,7 +109,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
       </widget>
      </widget>
     </widget>
-    <widget class="QWidget" name="page_2">
+    <widget class="QWidget" name="output">
      <property name="geometry">
       <rect>
        <x>0</x>
@@ -119,7 +119,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
       </rect>
      </property>
      <attribute name="label">
-      <string>Page 2</string>
+      <string>输出</string>
      </attribute>
      <widget class="QScrollArea" name="scrollArea_2">
       <property name="geometry">
@@ -142,14 +142,20 @@ li.checked::marker { content: &quot;\2612&quot;; }
          <height>1000</height>
         </rect>
        </property>
-       <widget class="QTextEdit" name="textEdit_2">
+       <widget class="QLabel" name="label">
         <property name="geometry">
          <rect>
           <x>0</x>
           <y>10</y>
           <width>1000</width>
-          <height>1001</height>
+          <height>1000</height>
          </rect>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(255, 255, 255);</string>
+        </property>
+        <property name="text">
+         <string/>
         </property>
        </widget>
       </widget>

@@ -3,6 +3,7 @@
 #include <QString>
 #include <vector>
 #include <map>
+#include <iostream>
 #include <utility>
 #include "dag.h"
 
@@ -38,14 +39,28 @@ public:
     struct Record{
         int begin;
         int end;
+        QString curProce;
+        Record() = default;
+        Record(int b, int e, QString cur): begin(b), end(e), curProce(cur) {}
     };
     struct SymbolInfo {
         int pos; //符号位置
         bool isIN;   // 是否在符号表
     };
+    //instVec （指令）
+    static std::vector<Instruction> instVec;
     OBJECT()= default;
+    OBJECT(const OBJECT&) = default;
+    OBJECT(std::vector<OPTIMIZE::BasicBlock> blocks): Rblocks(blocks) {
+        instVec.clear();
+        geneASM();
+        save_instVec("output.asm");
+        std::cout << "汇编代码生成完毕" << std::endl;
+        std::cout << "指令数：" << instVec.size() << std::endl;
+    }
     ~OBJECT()= default;
     void geneASM();
+    SymbolInfo getSymbolInfo(const QString& name, const QString& curFun);
 private:
     std::vector<OPTIMIZE::BasicBlock> Rblocks;
     //没有AL是因为为了方便，AX寄存器保留作为乘除法运算单元与返回值保存寄存器
@@ -55,17 +70,17 @@ private:
                                std::make_pair("DL", "") };
     //posMap （变量位置表）
     std::map<QString, Position> posMap;
-    //instVec （指令）
-    std::vector<Instruction> instVec;
+
 private:
+    void save_instVec(QString filename);
     bool isActive(const QString& name,QString curFun);
-    bool isOperator(const OPTIMIZE::OperatorType& qt);
+    bool isOperator1(const OPTIMIZE::OperatorType& op);
+    bool isOperator2(const OPTIMIZE::OperatorType&op);
     bool isNum(const QString& str);
     QString getAddr(const QString &name, const QString &curFun);
     QString findEmpty();
     void saveR(const QString& curFun);
     void getR(const OPTIMIZE::QuadTuple& qt, QString& R, QString& B, QString& C, const QString& curFun);
-    SymbolInfo getSymbolInfo(const QString& name, const QString& curFun);
 };
 
 #endif // OBJ_H

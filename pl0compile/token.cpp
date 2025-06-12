@@ -113,19 +113,19 @@ bool token::isarrayvar(const string& name) {
                         }
                     }
                     else {
-                        outputStream << "第" << line <<"行超出范围:"<<"数组数字"<< endl;
+                       outputStream << "第" << line <<"行超出范围:"<<"数组数字"<< endl;
                         hasError = true;
                         return false;
                     }
                 }
                 else {
-                    outputStream << "第" << line <<"行错误的数组结构:"<< endl;
+                   outputStream << "第" << line <<"行错误的数组结构:"<< endl;
                     hasError = true;
                     return false;
                 }
             }
             else {
-                outputStream << "第" << line <<"行错误的数组结构:"<<"["<< endl;
+               outputStream << "第" << line <<"行错误的数组结构:"<<"["<< endl;
                 hasError = true;
                 return false;
             }
@@ -194,7 +194,7 @@ bool token::parseArrayBounds(const string& name) {
 
     // ".." 检查（带花括号）
     if (pos + 1 >= input.length() || input[pos] != '.' || input[pos + 1] != '.') {
-        outputStream << "第" << line <<"行错误的数字结构"<< endl;
+       outputStream << "第" << line <<"行错误的数字结构"<< endl;
         return false;
     }
     pos += 2;
@@ -202,7 +202,7 @@ bool token::parseArrayBounds(const string& name) {
 
     // 上界检查（带花括号）
     if (!isdigit(input[pos])) {
-        outputStream << "第" << line <<"行没有正确的[]"<< endl;
+       outputStream << "第" << line <<"行没有正确的[]"<< endl;
         return false;
     }
     start = pos;
